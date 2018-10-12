@@ -11,6 +11,7 @@ spec:
         name: cilium-etcd-operator
     spec:
       serviceAccountName: cilium-etcd-operator
+      hostNetwork: true
       containers:
       - name: cilium-etcd-operator
         image: docker.io/cilium/cilium-etcd-operator:1.0
