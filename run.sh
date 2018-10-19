@@ -37,10 +37,6 @@ kubectl -n kube-system get secret cilium-etcd-client-tls || {
 	echo "generating CA certs ==="
 	cfssl gencert -initca ca-csr.json | cfssljson -bare ca
 
-	echo "generating etcd peer.json for cluster domain ${CLUSTER_DOMAIN} ==="
-
-	sed -e "s/CLUSTER_DOMAIN/${CLUSTER_DOMAIN}/" peer.json.sed > peer.json
-
 	echo "generating etcd peer certs ==="
 	cfssl gencert -ca=ca.pem -ca-key=ca-key.pem -config=ca-config.json -profile=peer peer.json | cfssljson -bare peer
 
@@ -71,6 +67,7 @@ kubectl -n kube-system get secret cilium-etcd-client-tls || {
 	rm server-ca.crt server.crt server.key
 
 	kubectl create secret generic -n kube-system cilium-etcd-client-tls --from-file=etcd-client-ca.crt --from-file=etcd-client.crt --from-file=etcd-client.key
+	kubectl create secret generic -n kube-system cilium-etcd-secrets --from-file=etcd-client-ca.crt --from-file=etcd-client.crt --from-file=etcd-client.key
 	rm etcd-client-ca.crt etcd-client.crt etcd-client.key
 
 	cd ..

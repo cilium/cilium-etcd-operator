@@ -14,7 +14,7 @@ spec:
       hostNetwork: true
       containers:
       - name: cilium-etcd-operator
-        image: docker.io/cilium/cilium-etcd-operator:1.1
+        image: docker.io/cilium/cilium-etcd-operator:1.2
         imagePullPolicy: IfNotPresent
         command: [ "/run.sh" ]
         env:
@@ -22,8 +22,6 @@ spec:
             valueFrom:
               fieldRef:
                 fieldPath: metadata.namespace
-          - name: "CLUSTER_DOMAIN"
-            value: cluster.local
 ---
 kind: ServiceAccount
 apiVersion: v1
