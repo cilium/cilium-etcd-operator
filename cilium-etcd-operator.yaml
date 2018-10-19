@@ -14,14 +14,16 @@ spec:
       hostNetwork: true
       containers:
       - name: cilium-etcd-operator
-        image: docker.io/cilium/cilium-etcd-operator:1.0
-        imagePullPolicy: Always
+        image: docker.io/cilium/cilium-etcd-operator:1.1
+        imagePullPolicy: IfNotPresent
         command: [ "/run.sh" ]
         env:
           - name: "POD_NAMESPACE"
             valueFrom:
               fieldRef:
                 fieldPath: metadata.namespace
+          - name: "CLUSTER_DOMAIN"
+            value: cluster.local
 ---
 kind: ServiceAccount
 apiVersion: v1
@@ -65,6 +67,11 @@ rules:
 - apiGroups: ["extensions"]
   resources: ["deployments"]
   verbs: ["create", "get","list","patch","update"]
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs: ["get", "create"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRoleBinding
