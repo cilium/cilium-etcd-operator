@@ -9,6 +9,7 @@ spec:
     metadata:
       labels:
         name: cilium-etcd-operator
+        io.cilium/app: etcd-operator
     spec:
       serviceAccountName: cilium-etcd-operator
       hostNetwork: true

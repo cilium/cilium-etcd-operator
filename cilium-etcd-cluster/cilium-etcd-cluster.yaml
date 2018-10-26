@@ -3,6 +3,8 @@ kind: "EtcdCluster"
 metadata:
   name: "cilium-etcd"
   namespace: kube-system
+  labels:
+    io.cilium/app: etcd-operator
 spec:
   size: 3
   version: "3.3.9"
