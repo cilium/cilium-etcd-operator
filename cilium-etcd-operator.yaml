@@ -15,7 +15,7 @@ spec:
       hostNetwork: true
       containers:
       - name: cilium-etcd-operator
-        image: docker.io/cilium/cilium-etcd-operator:1.2
+        image: docker.io/cilium/cilium-etcd-operator:1.3
         imagePullPolicy: IfNotPresent
         command: [ "/run.sh" ]
         env:
@@ -70,7 +70,7 @@ rules:
   - ""
   resources:
   - secrets
-  verbs: ["get", "create"]
+  verbs: ["get", "create", "delete","patch"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRoleBinding

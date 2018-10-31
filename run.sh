@@ -14,12 +14,29 @@ if [ -z "$GRACE_PERIOD" ]; then
 	GRACE_PERIOD=300
 fi
 
+ANNOTATION="io.cilium/etcd-operator-generated=true"
+
 trap cleanup EXIT
 
 function cleanup {
 	kubectl delete -f etcd-operator/crd.yaml || true
 	kubectl delete -f etcd-operator/deployment.yaml || true
 	kubectl delete -f cilium-etcd-cluster/cilium-etcd-cluster.yaml || true
+}
+
+function deriveCiliumMasterSecret {
+	echo "Deriving main secret from cilium-etcd-client-tls..."
+	kubectl get secret -n kube-system cilium-etcd-client-tls -o yaml > secret.yaml
+	sed -i 's/name: cilium-etcd-client-tls/name: cilium-etcd-secrets/g' secret.yaml
+
+	kubectl -n kube-system get secret cilium-etcd-secrets > /dev/null 2>&1 && {
+		kubectl -n kube-system delete secret cilium-etcd-secrets || true
+	}
+
+	kubectl -n kube-system apply -f secret.yaml
+	rm secret.yaml
+
+	kubectl -n kube-system annotate secret cilium-etcd-secrets io.cilium/etcd-operator-generated=true
 }
 
 echo "Configuring kubectl..."
@@ -32,19 +49,20 @@ API_TOKEN_PATH=${API_TOKEN_PATH:-/var/run/secrets/kubernetes.io/serviceaccount/t
 KUBE_TOKEN=$(< ${API_TOKEN_PATH})
 KUBERNETES_PORT_443_TCP_ADDR=${KUBERNETES_PORT_443_TCP_ADDR:-kubernetes}
 
-kubectl -n kube-system get secret cilium-etcd-client-tls || {
-	cd certs
+kubectl -n kube-system get secret cilium-etcd-client-tls > /dev/null 2>&1 || {
+	echo "Secret cilium-etcd-client-tls not found. Generating new secrets..."
+
 	echo "generating CA certs ==="
-	cfssl gencert -initca ca-csr.json | cfssljson -bare ca
+	cfssl gencert -initca certs/ca-csr.json | cfssljson -bare ca
 
 	echo "generating etcd peer certs ==="
-	cfssl gencert -ca=ca.pem -ca-key=ca-key.pem -config=ca-config.json -profile=peer peer.json | cfssljson -bare peer
+	cfssl gencert -ca=ca.pem -ca-key=ca-key.pem -config=certs/ca-config.json -profile=peer certs/peer.json | cfssljson -bare peer
 
 	echo "generating etcd server certs ==="
-	cfssl gencert -ca=ca.pem -ca-key=ca-key.pem -config=ca-config.json -profile=server server.json | cfssljson -bare server
+	cfssl gencert -ca=ca.pem -ca-key=ca-key.pem -config=certs/ca-config.json -profile=server certs/server.json | cfssljson -bare server
 
 	echo "generating etcd client certs ==="
-	cfssl gencert -ca=ca.pem -ca-key=ca-key.pem -config=ca-config.json -profile=client etcd-client.json | cfssljson -bare etcd-client
+	cfssl gencert -ca=ca.pem -ca-key=ca-key.pem -config=certs/ca-config.json -profile=client certs/etcd-client.json | cfssljson -bare etcd-client
 
 	mv etcd-client.pem etcd-client.crt
 	mv etcd-client-key.pem etcd-client.key
@@ -60,6 +78,22 @@ kubectl -n kube-system get secret cilium-etcd-client-tls || {
 
 	rm *.csr ca-key.pem
 
+	echo "Removing old secrets..."
+
+	kubectl -n kube-system get secret cilium-etcd-peer-tls > /dev/null 2>&1 && {
+		kubectl -n kube-system delete secret cilium-etcd-peer-tls || true
+	}
+
+	kubectl -n kube-system get secret cilium-etcd-server-tls > /dev/null 2>&1 && {
+		kubectl -n kube-system delete secret cilium-etcd-server-tls || true
+	}
+
+	kubectl -n kube-system get secret cilium-etcd-client-tls > /dev/null 2>&1 && {
+		kubectl -n kube-system delete secret cilium-etcd-client-tls || true
+	}
+
+	echo "Importing new secrets..."
+
 	kubectl create secret generic -n kube-system cilium-etcd-peer-tls --from-file=peer-ca.crt --from-file=peer.crt --from-file=peer.key
 	rm peer-ca.crt peer.crt peer.key
 
@@ -67,11 +101,13 @@ kubectl -n kube-system get secret cilium-etcd-client-tls || {
 	rm server-ca.crt server.crt server.key
 
 	kubectl create secret generic -n kube-system cilium-etcd-client-tls --from-file=etcd-client-ca.crt --from-file=etcd-client.crt --from-file=etcd-client.key
-	kubectl create secret generic -n kube-system cilium-etcd-secrets --from-file=etcd-client-ca.crt --from-file=etcd-client.crt --from-file=etcd-client.key
 	rm etcd-client-ca.crt etcd-client.crt etcd-client.key
-
-	cd ..
 }
+
+HAS_ANNOTATION=$(kubectl -n kube-system get secret cilium-etcd-secrets -o json | grep "$ANNOTATION" || true)
+if [ -z "$HAS_ANNOTATION" ]; then
+	deriveCiliumMasterSecret
+fi
 
 echo "Deploying etcd-operator..."
 kubectl apply -f etcd-operator/crd.yaml
