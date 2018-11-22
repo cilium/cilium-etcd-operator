@@ -1,8 +1,12 @@
-FROM laslabs/alpine-cfssl as cfssl
-WORKDIR /
+FROM docker.io/library/golang:1.11.1 as builder
+LABEL maintainer="maintainer@cilium.io"
+ADD . /go/src/github.com/cilium/cilium-etcd-operator
+WORKDIR /go/src/github.com/cilium/cilium-etcd-operator
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main
+RUN strip main
 
-FROM cilium/kubectl:1.0
-COPY --from=cfssl /usr/bin/cfssl /usr/bin/cfssljson /usr/bin/
+FROM scratch
+LABEL maintainer="maintainer@cilium.io"
+COPY --from=builder /go/src/github.com/cilium/cilium-etcd-operator/main /usr/bin/cilium-etcd-operator
 WORKDIR /
-ADD . /
-ENTRYPOINT ["sh", "/run.sh"]
+CMD ["/usr/bin/cilium-etcd-operator"]
