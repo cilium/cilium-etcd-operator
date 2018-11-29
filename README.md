@@ -8,7 +8,7 @@ an external etcd, it is likely using the same secret name so deploying the
 cilium-etcd-operator will overwrite that secret.
 
 ```
-kubectl apply -f cilium-etcd-operator.yaml
+kubectl apply -f https://raw.githubusercontent.com/cilium/cilium-etcd-operator/master/cilium-etcd-operator.yaml
 ```
 
 # Verification
