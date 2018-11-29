@@ -1,32 +1,49 @@
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
+  labels:
+    io.cilium/app: etcd-operator
+    name: cilium-etcd-operator
   name: cilium-etcd-operator
   namespace: kube-system
 spec:
   replicas: 1
+  selector:
+    matchLabels:
+      io.cilium/app: etcd-operator
+      name: cilium-etcd-operator
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+    type: RollingUpdate
   template:
     metadata:
       labels:
-        name: cilium-etcd-operator
         io.cilium/app: etcd-operator
+        name: cilium-etcd-operator
     spec:
-      serviceAccountName: cilium-etcd-operator
-      hostNetwork: true
       containers:
-      - name: cilium-etcd-operator
-        image: docker.io/cilium/cilium-etcd-operator:v2.0.0
-        imagePullPolicy: IfNotPresent
-        command: [ "/usr/bin/cilium-etcd-operator" ]
+      - command:
+        - /usr/bin/cilium-etcd-operator
         env:
-        - name: "CILIUM_ETCD_OPERATOR_CLUSTER_DOMAIN"
-          value: "cluster.local"
-        - name: "CILIUM_ETCD_OPERATOR_ETCD_CLUSTER_SIZE"
+        - name: CILIUM_ETCD_OPERATOR_CLUSTER_DOMAIN
+          value: cluster.local
+        - name: CILIUM_ETCD_OPERATOR_ETCD_CLUSTER_SIZE
           value: "3"
-        - name: "CILIUM_ETCD_OPERATOR_NAMESPACE"
+        - name: CILIUM_ETCD_OPERATOR_NAMESPACE
           valueFrom:
             fieldRef:
+              apiVersion: v1
               fieldPath: metadata.namespace
+        image: docker.io/cilium/cilium-etcd-operator:v2.0.0
+        imagePullPolicy: IfNotPresent
+        name: cilium-etcd-operator
+      dnsPolicy: ClusterFirst
+      hostNetwork: true
+      restartPolicy: Always
+      serviceAccount: cilium-etcd-operator
+      serviceAccountName: cilium-etcd-operator
 ---
 kind: ServiceAccount
 apiVersion: v1
@@ -47,42 +64,53 @@ rules:
   - etcdbackups
   - etcdrestores
   verbs:
-  - "*"
+  - '*'
 - apiGroups:
   - apiextensions.k8s.io
   resources:
   - customresourcedefinitions
   verbs:
-  - "*"
+  - '*'
 - apiGroups:
   - ""
   resources:
   - pods
   - deployments
   verbs:
-  - "*"
+  - '*'
 - apiGroups:
   - apps
   resources:
   - deployments
   verbs:
-  - "*"
+  - '*'
 - apiGroups:
   - ""
   resources:
   - componentstatuses
   verbs:
-  - "get"
-- apiGroups: ["extensions"]
-  resources: ["deployments"]
-  verbs: ["create", "get","list","patch","update"]
+  - get
+- apiGroups:
+  - extensions
+  resources:
+  - deployments
+  verbs:
+  - create
+  - get
+  - list
+  - patch
+  - update
 - apiGroups:
   - ""
   resources:
   - secrets
-  verbs: ["get", "create", "delete","patch"]
+  verbs:
+  - get
+  - create
+  - delete
+  - patch
 ---
-apiVersion: rbac.authorization.k8s.io/v1beta1
+apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: cilium-etcd-operator
@@ -115,13 +143,13 @@ rules:
   - etcdbackups
   - etcdrestores
   verbs:
-  - "*"
+  - '*'
 - apiGroups:
   - apiextensions.k8s.io
   resources:
   - customresourcedefinitions
   verbs:
-  - "*"
+  - '*'
 - apiGroups:
   - ""
   resources:
@@ -132,17 +160,23 @@ rules:
   - events
   - deployments
   verbs:
-  - "*"
+  - '*'
 - apiGroups:
   - apps
   resources:
   - deployments
   verbs:
-  - "*"
-- apiGroups: ["extensions"]
-  resources: ["deployments"]
-  verbs: ["create", "get","list","patch","update"]
-# The following permissions can be removed if not using S3 backup and TLS
+  - '*'
+- apiGroups:
+  - extensions
+  resources:
+  - deployments
+  verbs:
+  - create
+  - get
+  - list
+  - patch
+  - update
 - apiGroups:
   - ""
   resources:
@@ -163,4 +197,3 @@ subjects:
 - kind: ServiceAccount
   name: cilium-etcd-sa
   namespace: kube-system
----
