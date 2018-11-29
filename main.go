@@ -60,10 +60,18 @@ var (
 		Short: "Run the cilium etcd operator",
 		Run: func(cmd *cobra.Command, args []string) {
 			parseFlags()
-			err := run()
-			if err != nil {
-				log.Error(err)
+			interruptCh := handleInterrupt()
+			if preFlight {
+				log.Println("Running in pre-flight mode...")
+				handleCleanup(cleanUPWg, cleanUPSig, func() {})
+			} else {
+				handleCleanup(cleanUPWg, cleanUPSig, cleanUp)
+				err := run()
+				if err != nil {
+					log.Error(err)
+				}
 			}
+			<-interruptCh
 		},
 	}
 
@@ -73,6 +81,7 @@ var (
 	etcdVersion    string
 	gracePeriod    time.Duration
 	namespace      string
+	preFlight      bool
 
 	etcdCRD        *apiExt_v1beta1.CustomResourceDefinition
 	etcdDeployment *apps_v1beta2.Deployment
@@ -100,6 +109,9 @@ func init() {
 	flags.StringVar(&namespace,
 		"namespace", defaults.DefaultNamespace, "Namespace where etcd-operator should be deployed")
 	viper.BindEnv("namespace", "CILIUM_ETCD_OPERATOR_NAMESPACE")
+	flags.BoolVar(&preFlight,
+		"pre-flight", false, "Run in pre-flight mode.")
+	viper.BindEnv("pre-flight", "CILIUM_ETCD_OPERATOR_PRE_FLIGHT")
 
 	viper.BindEnv("pod-name", "CILIUM_ETCD_OPERATOR_POD_NAME")
 	viper.BindEnv("pod-uid", "CILIUM_ETCD_OPERATOR_POD_UID")
@@ -114,25 +126,19 @@ func parseFlags() {
 	namespace = viper.GetString("namespace")
 	ownerName := viper.GetString("pod-name")
 	ownerUID := viper.GetString("pod-uid")
+	preFlight = viper.GetBool("pre-flight")
 
 	etcdCRD = etcd_operator.EtcdCRD(ownerName, ownerUID)
 	etcdDeployment = etcd_operator.EtcdOperatorDeployment(namespace, ownerName, ownerUID)
 	ciliumEtcdCR = cilium_etcd_cluster.CiliumEtcdCluster(namespace, etcdVersion, clusterSize)
 	gracePeriod = time.Duration(gracePeriodSec) * time.Second
-	err := k8s.CreateDefaultClient()
-	if err != nil {
-		panic(err)
-	}
 }
 
 func main() {
-	handleCleanup(cleanUPWg, cleanUPSig, cleanUp)
-	interruptCh := handleInterrupt()
 	if err := RootCmd.Execute(); err != nil {
 		fmt.Println(err)
 		os.Exit(-1)
 	}
-	<-interruptCh
 }
 
 func handleInterrupt() <-chan struct{} {
@@ -152,6 +158,10 @@ func handleInterrupt() <-chan struct{} {
 }
 
 func run() error {
+	err := k8s.CreateDefaultClient()
+	if err != nil {
+		panic(err)
+	}
 	// generate all certificates that we will use
 	m, err := certs.GenCertificates(namespace, clusterDomain)
 	if err != nil {
