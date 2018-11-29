@@ -39,7 +39,7 @@
     "pkg/generated/clientset/versioned/typed/etcd/v1beta2",
   ]
   pruneopts = "NUT"
-  revision = "81b759e96082b0d3f16f703b82ad2bc39d878ce6"
+  revision = "v0.9.3"
 
 [[projects]]
   digest = "1:1b91ae0dc69a41d4c2ed23ea5cffb721ea63f5037ca4b81e6d6771fbb8f45129"

@@ -21,16 +21,28 @@ import (
 	core_v1 "k8s.io/api/core/v1"
 	apiextensions_v1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
+
+var blockOwnerDeletion = true
 
 // EtcdOperatorDeployment returns the etcd operator deployment that is
 // for the given namespace.
-func EtcdOperatorDeployment(namespace string) *apps_v1beta2.Deployment {
+func EtcdOperatorDeployment(namespace, ownerName, ownerUID string) *apps_v1beta2.Deployment {
 	nReplicas := int32(1)
 	return &apps_v1beta2.Deployment{
 		ObjectMeta: meta_v1.ObjectMeta{
 			Name:      "etcd-operator",
 			Namespace: namespace,
+			OwnerReferences: []meta_v1.OwnerReference{
+				{
+					APIVersion:         "v1",
+					Kind:               "Pod",
+					Name:               ownerName,
+					UID:                types.UID(ownerUID),
+					BlockOwnerDeletion: &blockOwnerDeletion,
+				},
+			},
 		},
 		Spec: apps_v1beta2.DeploymentSpec{
 			Replicas: &nReplicas,
@@ -46,7 +58,7 @@ func EtcdOperatorDeployment(namespace string) *apps_v1beta2.Deployment {
 					Containers: []core_v1.Container{
 						{
 							Name:  "etcd-operator",
-							Image: "quay.io/coreos/etcd-operator:v0.9.2",
+							Image: "quay.io/coreos/etcd-operator:v0.9.3",
 							Command: []string{
 								"etcd-operator",
 								// Uncomment to act for resources in all
@@ -81,10 +93,19 @@ func EtcdOperatorDeployment(namespace string) *apps_v1beta2.Deployment {
 }
 
 // EtcdCRD returns the etcd CRD.
-func EtcdCRD() *apiextensions_v1beta1.CustomResourceDefinition {
+func EtcdCRD(ownerName, ownerUID string) *apiextensions_v1beta1.CustomResourceDefinition {
 	return &apiextensions_v1beta1.CustomResourceDefinition{
 		ObjectMeta: meta_v1.ObjectMeta{
 			Name: "etcdclusters.etcd.database.coreos.com",
+			OwnerReferences: []meta_v1.OwnerReference{
+				{
+					APIVersion:         "v1",
+					Kind:               "Pod",
+					Name:               ownerName,
+					UID:                types.UID(ownerUID),
+					BlockOwnerDeletion: &blockOwnerDeletion,
+				},
+			},
 		},
 		Spec: apiextensions_v1beta1.CustomResourceDefinitionSpec{
 			Group: "etcd.database.coreos.com",
