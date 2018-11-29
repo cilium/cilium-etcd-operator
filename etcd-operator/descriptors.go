@@ -46,7 +46,7 @@ func EtcdOperatorDeployment(namespace string) *apps_v1beta2.Deployment {
 					Containers: []core_v1.Container{
 						{
 							Name:  "etcd-operator",
-							Image: "quay.io/coreos/etcd-operator:v0.9.2",
+							Image: "quay.io/coreos/etcd-operator:v0.9.3",
 							Command: []string{
 								"etcd-operator",
 								// Uncomment to act for resources in all
