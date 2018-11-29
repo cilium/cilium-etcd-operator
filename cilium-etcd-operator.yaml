@@ -36,6 +36,16 @@ spec:
             fieldRef:
               apiVersion: v1
               fieldPath: metadata.namespace
+        - name: CILIUM_ETCD_OPERATOR_POD_NAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.name
+        - name: CILIUM_ETCD_OPERATOR_POD_UID
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.uid
         image: docker.io/cilium/cilium-etcd-operator:v2.0.0
         imagePullPolicy: IfNotPresent
         name: cilium-etcd-operator

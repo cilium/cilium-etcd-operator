@@ -100,6 +100,9 @@ func init() {
 	flags.StringVar(&namespace,
 		"namespace", defaults.DefaultNamespace, "Namespace where etcd-operator should be deployed")
 	viper.BindEnv("namespace", "CILIUM_ETCD_OPERATOR_NAMESPACE")
+
+	viper.BindEnv("pod-name", "CILIUM_ETCD_OPERATOR_POD_NAME")
+	viper.BindEnv("pod-uid", "CILIUM_ETCD_OPERATOR_POD_UID")
 	viper.BindPFlags(flags)
 }
 
@@ -109,9 +112,11 @@ func parseFlags() {
 	etcdVersion = viper.GetString("etcd-version")
 	gracePeriodSec = viper.GetInt64("grace-period-seconds")
 	namespace = viper.GetString("namespace")
+	ownerName := viper.GetString("pod-name")
+	ownerUID := viper.GetString("pod-uid")
 
-	etcdCRD = etcd_operator.EtcdCRD()
-	etcdDeployment = etcd_operator.EtcdOperatorDeployment(namespace)
+	etcdCRD = etcd_operator.EtcdCRD(ownerName, ownerUID)
+	etcdDeployment = etcd_operator.EtcdOperatorDeployment(namespace, ownerName, ownerUID)
 	ciliumEtcdCR = cilium_etcd_cluster.CiliumEtcdCluster(namespace, etcdVersion, clusterSize)
 	gracePeriod = time.Duration(gracePeriodSec) * time.Second
 	err := k8s.CreateDefaultClient()
@@ -196,7 +201,11 @@ func run() error {
 		}
 		if len(pl.Items) == 0 {
 			log.Info("No running etcd pod found. Bootstrapping from scratch...")
-			deployCiliumCR(true)
+			err := deployCiliumCR(true)
+			if err != nil {
+				log.Error(err)
+				continue
+			}
 			log.Infof("Sleeping for %s to allow cluster to come up...", gracePeriod)
 			select {
 			case <-cleanUPSig:
@@ -224,9 +233,15 @@ func deployETCD() error {
 	log.Info("Done!")
 
 	log.Info("Deploying etcd-operator deployment...")
-	_, err = k8s.Client().AppsV1beta2().Deployments(etcdDeployment.Namespace).Get(etcdDeployment.Name, meta_v1.GetOptions{})
+	etcdDeplyServer, err := k8s.Client().AppsV1beta2().Deployments(etcdDeployment.Namespace).Get(etcdDeployment.Name, meta_v1.GetOptions{})
 	switch {
 	case err == nil:
+		etcdCpy := etcdDeployment.DeepCopy()
+		etcdCpy.UID = etcdDeplyServer.UID
+		_, err = k8s.Client().AppsV1beta2().Deployments(etcdDeployment.Namespace).Update(etcdDeployment)
+		if err != nil {
+			return fmt.Errorf("unable to update etcd-operator deployment: %s", err)
+		}
 	case errors.IsNotFound(err):
 		_, err := k8s.Client().AppsV1beta2().Deployments(etcdDeployment.Namespace).Create(etcdDeployment)
 		if err != nil {
