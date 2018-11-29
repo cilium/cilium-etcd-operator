@@ -46,7 +46,7 @@ spec:
             fieldRef:
               apiVersion: v1
               fieldPath: metadata.uid
-        image: docker.io/cilium/cilium-etcd-operator:v2.0.0
+        image: docker.io/cilium/cilium-etcd-operator:v2.0.1
         imagePullPolicy: IfNotPresent
         name: cilium-etcd-operator
       dnsPolicy: ClusterFirst
