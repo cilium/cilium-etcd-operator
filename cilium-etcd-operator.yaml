@@ -54,6 +54,8 @@ spec:
       restartPolicy: Always
       serviceAccount: cilium-etcd-operator
       serviceAccountName: cilium-etcd-operator
+      tolerations:
+      - operator: Exists
 ---
 kind: ServiceAccount
 apiVersion: v1
