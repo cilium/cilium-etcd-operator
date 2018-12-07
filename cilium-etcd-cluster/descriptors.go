@@ -43,7 +43,8 @@ func CiliumEtcdCluster(namespace, version string, size int) *v1beta2.EtcdCluster
 				},
 			},
 			Pod: &v1beta2.PodPolicy{
-				Labels: defaults.CiliumLabelsApp,
+				Labels:       defaults.CiliumLabelsApp,
+				BusyboxImage: "docker.io/library/busybox:1.28.0-glibc",
 			},
 		},
 	}
