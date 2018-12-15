@@ -16,6 +16,7 @@ package cilium_etcd_cluster
 
 import (
 	"github.com/cilium/cilium-etcd-operator/pkg/defaults"
+	"k8s.io/api/core/v1"
 
 	"github.com/coreos/etcd-operator/pkg/apis/etcd/v1beta2"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -45,6 +46,27 @@ func CiliumEtcdCluster(namespace, version string, size int) *v1beta2.EtcdCluster
 			Pod: &v1beta2.PodPolicy{
 				Labels:       defaults.CiliumLabelsApp,
 				BusyboxImage: "docker.io/library/busybox:1.28.0-glibc",
+				Affinity: &v1.Affinity{
+					PodAntiAffinity: &v1.PodAntiAffinity{
+						PreferredDuringSchedulingIgnoredDuringExecution: []v1.WeightedPodAffinityTerm{
+							{
+								Weight: 100,
+								PodAffinityTerm: v1.PodAffinityTerm{
+									LabelSelector: &meta_v1.LabelSelector{
+										MatchExpressions: []meta_v1.LabelSelectorRequirement{
+											{
+												Key:      "app",
+												Operator: meta_v1.LabelSelectorOpIn,
+												Values:   []string{"etcd"},
+											},
+										},
+									},
+									TopologyKey: "kubernetes.io/hostname",
+								},
+							},
+						},
+					},
+				},
 			},
 		},
 	}
