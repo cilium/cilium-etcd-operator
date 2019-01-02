@@ -75,14 +75,16 @@ var (
 		},
 	}
 
-	clusterDomain  string
-	clusterSize    int
-	gracePeriodSec int64
-	etcdVersion    string
-	gracePeriod    time.Duration
-	namespace      string
-	preFlight      bool
-	generateCerts  bool
+	clusterDomain           string
+	clusterSize             int
+	gracePeriodSec          int64
+	etcdVersion             string
+	gracePeriod             time.Duration
+	namespace               string
+	preFlight               bool
+	generateCerts           bool
+	operatorImage           string
+	operatorImagePullSecret string
 
 	etcdCRD        *apiExt_v1beta1.CustomResourceDefinition
 	etcdDeployment *apps_v1beta2.Deployment
@@ -116,6 +118,12 @@ func init() {
 	flags.BoolVar(&generateCerts,
 		"generate-certs", true, "Generate and deploy TLS certificates")
 	viper.BindEnv("generate-certs", "CILIUM_ETCD_OPERATOR_GENERATE_CERTS")
+	flags.StringVar(&operatorImage,
+		"operator-image", defaults.DefaultOperatorImage, "Etcd Operator Image to be used")
+	viper.BindEnv("operator-image", "CILIUM_ETCD_OPERATOR_IMAGE")
+	flags.StringVar(&operatorImagePullSecret,
+		"operator-image-pull-secret", "", "Secret to be used for Image Pull")
+	viper.BindEnv("operator-image-pull-secret", "CILIUM_ETCD_OPERATOR_IMAGE_PULL_SECRET")
 
 	viper.BindEnv("pod-name", "CILIUM_ETCD_OPERATOR_POD_NAME")
 	viper.BindEnv("pod-uid", "CILIUM_ETCD_OPERATOR_POD_UID")
@@ -132,9 +140,11 @@ func parseFlags() {
 	ownerUID := viper.GetString("pod-uid")
 	preFlight = viper.GetBool("pre-flight")
 	generateCerts = viper.GetBool("generate-certs")
+	operatorImage = viper.GetString("operator-image")
+	operatorImagePullSecret = viper.GetString("operator-image-pull-secret")
 
 	etcdCRD = etcd_operator.EtcdCRD(ownerName, ownerUID)
-	etcdDeployment = etcd_operator.EtcdOperatorDeployment(namespace, ownerName, ownerUID)
+	etcdDeployment = etcd_operator.EtcdOperatorDeployment(namespace, ownerName, ownerUID, operatorImage, operatorImagePullSecret)
 	ciliumEtcdCR = cilium_etcd_cluster.CiliumEtcdCluster(namespace, etcdVersion, clusterSize)
 	gracePeriod = time.Duration(gracePeriodSec) * time.Second
 }

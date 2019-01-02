@@ -28,6 +28,8 @@ var (
 
 	ClusterSize = 3
 
+	DefaultOperatorImage = "quay.io/coreos/etcd-operator:v0.9.3"
+
 	DefaultNamespace = "kube-system"
 
 	ClusterDomain = "cluster.local"
