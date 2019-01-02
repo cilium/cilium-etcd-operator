@@ -114,7 +114,7 @@ func init() {
 		"pre-flight", false, "Run in pre-flight mode.")
 	viper.BindEnv("pre-flight", "CILIUM_ETCD_OPERATOR_PRE_FLIGHT")
 	flags.BoolVar(&generateCerts,
-		"generate-certs", false, "Generate and deploy TLS certificates")
+		"generate-certs", true, "Generate and deploy TLS certificates")
 	viper.BindEnv("generate-certs", "CILIUM_ETCD_OPERATOR_GENERATE_CERTS")
 
 	viper.BindEnv("pod-name", "CILIUM_ETCD_OPERATOR_POD_NAME")
