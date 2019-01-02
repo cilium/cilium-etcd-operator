@@ -28,8 +28,13 @@ var blockOwnerDeletion = true
 
 // EtcdOperatorDeployment returns the etcd operator deployment that is
 // for the given namespace.
-func EtcdOperatorDeployment(namespace, ownerName, ownerUID string) *apps_v1beta2.Deployment {
+func EtcdOperatorDeployment(namespace, ownerName, ownerUID, operatorImage, operatorImagePullSecret string) *apps_v1beta2.Deployment {
 	nReplicas := int32(1)
+	secrets := []core_v1.LocalObjectReference{}
+	if operatorImagePullSecret != "" {
+		imagePullSecret := core_v1.LocalObjectReference{Name: operatorImagePullSecret}
+		secrets = append(secrets, imagePullSecret)
+	}
 	return &apps_v1beta2.Deployment{
 		ObjectMeta: meta_v1.ObjectMeta{
 			Name:      "etcd-operator",
@@ -58,7 +63,7 @@ func EtcdOperatorDeployment(namespace, ownerName, ownerUID string) *apps_v1beta2
 					Containers: []core_v1.Container{
 						{
 							Name:  "etcd-operator",
-							Image: "quay.io/coreos/etcd-operator:v0.9.3",
+							Image: operatorImage,
 							Command: []string{
 								"etcd-operator",
 								// Uncomment to act for resources in all
@@ -86,6 +91,7 @@ func EtcdOperatorDeployment(namespace, ownerName, ownerUID string) *apps_v1beta2
 							},
 						},
 					},
+					ImagePullSecrets: secrets,
 				},
 			},
 		},
