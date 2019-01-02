@@ -82,6 +82,7 @@ var (
 	gracePeriod    time.Duration
 	namespace      string
 	preFlight      bool
+	generateCerts  bool
 
 	etcdCRD        *apiExt_v1beta1.CustomResourceDefinition
 	etcdDeployment *apps_v1beta2.Deployment
@@ -112,6 +113,9 @@ func init() {
 	flags.BoolVar(&preFlight,
 		"pre-flight", false, "Run in pre-flight mode.")
 	viper.BindEnv("pre-flight", "CILIUM_ETCD_OPERATOR_PRE_FLIGHT")
+	flags.BoolVar(&generateCerts,
+		"generate-certs", false, "Generate and deploy TLS certificates")
+	viper.BindEnv("generate-certs", "CILIUM_ETCD_OPERATOR_GENERATE_CERTS")
 
 	viper.BindEnv("pod-name", "CILIUM_ETCD_OPERATOR_POD_NAME")
 	viper.BindEnv("pod-uid", "CILIUM_ETCD_OPERATOR_POD_UID")
@@ -127,6 +131,7 @@ func parseFlags() {
 	ownerName := viper.GetString("pod-name")
 	ownerUID := viper.GetString("pod-uid")
 	preFlight = viper.GetBool("pre-flight")
+	generateCerts = viper.GetBool("generate-certs")
 
 	etcdCRD = etcd_operator.EtcdCRD(ownerName, ownerUID)
 	etcdDeployment = etcd_operator.EtcdOperatorDeployment(namespace, ownerName, ownerUID)
@@ -162,22 +167,30 @@ func run() error {
 	if err != nil {
 		panic(err)
 	}
-	// generate all certificates that we will use
-	m, err := certs.GenCertificates(namespace, clusterDomain)
-	if err != nil {
-		return err
-	}
-	// Deploying all secrets
-	err = deploySecrets(namespace, m)
-	if err != nil {
-		return err
-	}
-	// We don't need to certificates so we can clean them up
-	m = map[string]map[string][]byte{}
 
-	err = deriveCiliumSecrets()
-	if err != nil {
-		return err
+	// Generate and create TLS Certs based on the commandline flags
+	if generateCerts {
+		log.Info("Generating TLS certificates...")
+		// generate all certificates that we will use
+		m, err := certs.GenCertificates(namespace, clusterDomain)
+		if err != nil {
+			return err
+		}
+		// Deploying all secrets
+		err = deploySecrets(namespace, m)
+		if err != nil {
+			return err
+		}
+		// We don't need to certificates so we can clean them up
+		m = map[string]map[string][]byte{}
+
+		err = deriveCiliumSecrets()
+		if err != nil {
+			return err
+		}
+
+	} else {
+		log.Info("Skipping TLS Certificates generation..")
 	}
 
 	err = deployETCD()
