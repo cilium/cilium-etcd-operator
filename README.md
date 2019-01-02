@@ -7,6 +7,12 @@ Kubernetes secret `cilium-etcd-secrets`. If you have configured Cilium to use
 an external etcd, it is likely using the same secret name so deploying the
 cilium-etcd-operator will overwrite that secret.
 
+If you already have a mechanism to generate certs and to avoid fresh certificate generation/overwrites to existing ones, set the following environment variable:
+
+```
+CILIUM_ETCD_OPERATOR_GENERATE_CERTS=false
+```
+
 ```
 kubectl apply -f https://raw.githubusercontent.com/cilium/cilium-etcd-operator/master/cilium-etcd-operator.yaml
 ```
