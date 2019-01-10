@@ -362,7 +362,7 @@ func cleanUp() {
 	log.Info("Deleting etcd-operator CRD...")
 	err := k8s.ExtensionsClient().ApiextensionsV1beta1().CustomResourceDefinitions().Delete(etcdCRD.Name, &meta_v1.DeleteOptions{})
 	if err != nil {
-		log.Warning("Unable to delete etcd-operator CRD: %s", err)
+		log.Warningf("Unable to delete etcd-operator CRD: %s", err)
 	} else {
 		log.Info("Done")
 	}
@@ -370,7 +370,7 @@ func cleanUp() {
 	d := meta_v1.DeletePropagationForeground
 	err = k8s.Client().AppsV1beta2().Deployments(etcdDeployment.Namespace).Delete(etcdDeployment.Name, &meta_v1.DeleteOptions{PropagationPolicy: &d})
 	if err != nil {
-		log.Warning("Unable to delete etcd-operator deployment: %s", err)
+		log.Warningf("Unable to delete etcd-operator deployment: %s", err)
 	} else {
 		log.Info("Done")
 	}
