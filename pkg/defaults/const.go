@@ -37,4 +37,6 @@ var (
 	ClusterName = "cilium-etcd"
 
 	DefaultGracePeriodSecond int64 = 300
+
+	ETCDEnvVarPrefix = "CILIUM_ETCD_META"
 )
