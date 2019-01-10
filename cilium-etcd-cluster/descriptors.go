@@ -27,7 +27,7 @@ import (
 func CiliumEtcdCluster(namespace, version string, size int) *v1beta2.EtcdCluster {
 	return &v1beta2.EtcdCluster{
 		ObjectMeta: meta_v1.ObjectMeta{
-			Name:      "cilium-etcd",
+			Name:      defaults.ClusterName,
 			Namespace: namespace,
 			Labels:    defaults.CiliumLabelsApp,
 		},
@@ -55,9 +55,9 @@ func CiliumEtcdCluster(namespace, version string, size int) *v1beta2.EtcdCluster
 									LabelSelector: &meta_v1.LabelSelector{
 										MatchExpressions: []meta_v1.LabelSelectorRequirement{
 											{
-												Key:      "app",
+												Key:      "etcd_cluster",
 												Operator: meta_v1.LabelSelectorOpIn,
-												Values:   []string{"etcd"},
+												Values:   []string{defaults.ClusterName},
 											},
 										},
 									},
