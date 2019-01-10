@@ -34,5 +34,7 @@ var (
 
 	ClusterDomain = "cluster.local"
 
+	ClusterName = "cilium-etcd"
+
 	DefaultGracePeriodSecond int64 = 300
 )
