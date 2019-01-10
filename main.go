@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -130,6 +131,28 @@ func init() {
 	viper.BindPFlags(flags)
 }
 
+func parseEtcdEnv() []v1.EnvVar {
+	var etcdEnvVars []v1.EnvVar
+	for _, envVar := range os.Environ() {
+		if strings.HasPrefix(envVar, defaults.ETCDEnvVarPrefix) {
+			var etcdEnvVarValue string
+
+			etcdEnvVar := strings.TrimPrefix(envVar, defaults.ETCDEnvVarPrefix+"_")
+			etcdEnvVarNameValue := strings.Split(etcdEnvVar, "=")
+			etcdEnvVarName := etcdEnvVarNameValue[0]
+			if len(etcdEnvVarNameValue) > 1 {
+				etcdEnvVarValue = strings.Join(etcdEnvVarNameValue[1:], "=")
+			}
+			envVar := v1.EnvVar{
+				Name:  etcdEnvVarName,
+				Value: etcdEnvVarValue,
+			}
+			etcdEnvVars = append(etcdEnvVars, envVar)
+		}
+	}
+	return etcdEnvVars
+}
+
 func parseFlags() {
 	clusterDomain = viper.GetString("cluster-domain")
 	clusterSize = viper.GetInt("etcd-cluster-size")
@@ -142,10 +165,11 @@ func parseFlags() {
 	generateCerts = viper.GetBool("generate-certs")
 	operatorImage = viper.GetString("operator-image")
 	operatorImagePullSecret = viper.GetString("operator-image-pull-secret")
+	etcdEnvVar := parseEtcdEnv()
 
 	etcdCRD = etcd_operator.EtcdCRD(ownerName, ownerUID)
 	etcdDeployment = etcd_operator.EtcdOperatorDeployment(namespace, ownerName, ownerUID, operatorImage, operatorImagePullSecret)
-	ciliumEtcdCR = cilium_etcd_cluster.CiliumEtcdCluster(namespace, etcdVersion, clusterSize)
+	ciliumEtcdCR = cilium_etcd_cluster.CiliumEtcdCluster(namespace, etcdVersion, clusterSize, etcdEnvVar)
 	gracePeriod = time.Duration(gracePeriodSec) * time.Second
 }
 

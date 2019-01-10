@@ -24,7 +24,7 @@ import (
 
 // CiliumEtcdCluster returns a Cilium ETCD cluster on the given namespace
 // for the given etcd version with for the given size.
-func CiliumEtcdCluster(namespace, version string, size int) *v1beta2.EtcdCluster {
+func CiliumEtcdCluster(namespace, version string, size int, etcdEnv []v1.EnvVar) *v1beta2.EtcdCluster {
 	return &v1beta2.EtcdCluster{
 		ObjectMeta: meta_v1.ObjectMeta{
 			Name:      defaults.ClusterName,
@@ -44,6 +44,7 @@ func CiliumEtcdCluster(namespace, version string, size int) *v1beta2.EtcdCluster
 				},
 			},
 			Pod: &v1beta2.PodPolicy{
+				EtcdEnv: etcdEnv,
 				Labels:       defaults.CiliumLabelsApp,
 				BusyboxImage: "docker.io/library/busybox:1.28.0-glibc",
 				Affinity: &v1.Affinity{
