@@ -237,11 +237,25 @@ func run() error {
 	}
 
 	log.Infof("Sleeping for %s to allow cluster to come up...", gracePeriod)
-	select {
-	case <-cleanUPSig:
-		return nil
-	case <-time.Tick(gracePeriod):
+
+	t := time.NewTicker(gracePeriod)
+	for {
+		select {
+		case <-cleanUPSig:
+			return nil
+		case <-t.C:
+			t.Stop()
+			goto forloop
+		case <-time.Tick(30 * time.Second):
+			// in case the first etcd-operator deployment is not running, retry
+			// it until we start monitoring cluster health.
+			err = deployETCD()
+			if err != nil {
+				return err
+			}
+		}
 	}
+forloop:
 
 	log.Info("Starting to monitor cluster health...")
 
@@ -302,12 +316,20 @@ func deployETCD() error {
 	etcdDeplyServer, err := k8s.Client().AppsV1beta2().Deployments(etcdDeployment.Namespace).Get(etcdDeployment.Name, meta_v1.GetOptions{})
 	switch {
 	case err == nil:
-		etcdCpy := etcdDeployment.DeepCopy()
-		etcdCpy.UID = etcdDeplyServer.UID
-		_, err = k8s.Client().AppsV1beta2().Deployments(etcdDeployment.Namespace).Update(etcdDeployment)
-		if err != nil {
-			return fmt.Errorf("unable to update etcd-operator deployment: %s", err)
+		// If there are no available replicas running,
+		// fallthrough to re-create etcd-deployment
+		if etcdDeplyServer.Status.AvailableReplicas != 0 {
+			etcdCpy := etcdDeployment.DeepCopy()
+			etcdCpy.UID = etcdDeplyServer.UID
+			_, err = k8s.Client().AppsV1beta2().Deployments(etcdDeployment.Namespace).Update(etcdDeployment)
+			if err != nil {
+				return fmt.Errorf("unable to update etcd-operator deployment: %s", err)
+			}
+			break
 		}
+		fg := meta_v1.DeletePropagationForeground
+		k8s.Client().AppsV1beta2().Deployments(etcdDeployment.Namespace).Delete(etcdDeployment.Name, &meta_v1.DeleteOptions{PropagationPolicy: &fg})
+		fallthrough
 	case errors.IsNotFound(err):
 		_, err := k8s.Client().AppsV1beta2().Deployments(etcdDeployment.Namespace).Create(etcdDeployment)
 		if err != nil {
