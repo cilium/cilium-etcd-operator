@@ -231,6 +231,10 @@ func run() error {
 	if err != nil {
 		return err
 	}
+	err = deployCiliumCR(false)
+	if err != nil {
+		return err
+	}
 
 	log.Infof("Sleeping for %s to allow cluster to come up...", gracePeriod)
 	select {
@@ -257,8 +261,13 @@ func run() error {
 			continue
 		}
 		if len(pl.Items) == 0 {
+			err := deployETCD()
+			if err != nil {
+				log.Error(err)
+				continue
+			}
 			log.Info("No running etcd pod found. Bootstrapping from scratch...")
-			err := deployCiliumCR(true)
+			err = deployCiliumCR(true)
 			if err != nil {
 				log.Error(err)
 				continue
@@ -309,7 +318,7 @@ func deployETCD() error {
 	}
 	log.Info("Done!")
 
-	return deployCiliumCR(false)
+	return nil
 }
 
 func deployCiliumCR(force bool) error {
