@@ -70,6 +70,9 @@ var (
 				err := run()
 				if err != nil {
 					log.Error(err)
+					log.Error("Error while creating etcd-operator deployment, restarting cilium-etcd-operator...")
+					CleanUp()
+					return
 				}
 			}
 			<-interruptCh
@@ -90,6 +93,8 @@ var (
 	etcdCRD        *apiExt_v1beta1.CustomResourceDefinition
 	etcdDeployment *apps_v1beta2.Deployment
 	ciliumEtcdCR   *v1beta2.EtcdCluster
+
+	closeOnce sync.Once
 )
 
 func init() {
@@ -188,7 +193,7 @@ func handleInterrupt() <-chan struct{} {
 	go func() {
 		for s := range sig {
 			log.WithField("signal", s).Info("Exiting due to signal")
-			<-CleanUp()
+			CleanUp()
 			break
 		}
 		close(interrupt)
@@ -394,14 +399,11 @@ func deriveCiliumSecrets() error {
 	return nil
 }
 
-func CleanUp() <-chan struct{} {
-	close(cleanUPSig)
-	exited := make(chan struct{})
-	go func() {
+func CleanUp() {
+	closeOnce.Do(func() {
+		close(cleanUPSig)
 		cleanUPWg.Wait()
-		close(exited)
-	}()
-	return exited
+	})
 }
 
 func handleCleanup(wg *sync.WaitGroup, ch <-chan struct{}, f func()) {
