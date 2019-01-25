@@ -81,6 +81,7 @@ var (
 
 	clusterDomain           string
 	clusterSize             int
+	quorumSize              int
 	gracePeriodSec          int64
 	etcdVersion             string
 	gracePeriod             time.Duration
@@ -161,6 +162,7 @@ func parseEtcdEnv() []v1.EnvVar {
 func parseFlags() {
 	clusterDomain = viper.GetString("cluster-domain")
 	clusterSize = viper.GetInt("etcd-cluster-size")
+	quorumSize = (clusterSize / 2) + (clusterSize % 2)
 	etcdVersion = viper.GetString("etcd-version")
 	gracePeriodSec = viper.GetInt64("grace-period-seconds")
 	namespace = viper.GetString("namespace")
@@ -299,6 +301,15 @@ forloop:
 			}
 			continue
 		}
+		if len(pl.Items) < quorumSize {
+			// https://github.com/coreos/etcd-operator/issues/1972
+			// Etcd Operator doesn't do anything to bring back the cluster if the quorum is lost
+			// The main constraints for the upstream being, restoring backup after quorum is lost
+			// In case of Cilium, agents can back fill the etcd after cluster is up
+			log.Info("Etcd cluster lost the quorum. Bootstrapping from scratch...")
+			cleanUp()
+			continue
+		}
 	}
 }
 
@@ -430,6 +441,28 @@ func cleanUp() {
 		log.Warningf("Unable to delete etcd-operator deployment: %s", err)
 	} else {
 		log.Info("Done")
+	}
+
+	// Inetermittently the foreground cleanup is not working, causing the etcd pods lying around
+	// Etcd operator not cleaning up the pods after quorum is lost
+	// This additional safety check can make sure if any orphan pods and deletes them
+	// Need to add Pods delete permissions in the cluster role binding
+	pl, err := k8s.Client().CoreV1().Pods(namespace).List(meta_v1.ListOptions{
+		LabelSelector: "etcd_cluster=cilium-etcd",
+		FieldSelector: "status.phase=Running",
+	})
+	if err != nil {
+		log.Warningf("Unable to find the etcd pods")
+	} else {
+		for _, p := range pl.Items {
+			err = k8s.Client().CoreV1().Pods(namespace).Delete(p.Name, &meta_v1.DeleteOptions{})
+			if err != nil {
+				log.Warningf("Unable to delete the pods %s", p.Name)
+				log.Error(err)
+			} else {
+				log.Info("Deleted the pod ", p.Name)
+			}
+		}
 	}
 }
 
