@@ -234,7 +234,7 @@ func run() error {
 		log.Info("Skipping TLS Certificates generation..")
 	}
 
-	err = deployETCD()
+	err = deployETCD(false)
 	if err != nil {
 		return err
 	}
@@ -256,9 +256,12 @@ func run() error {
 		case <-time.Tick(30 * time.Second):
 			// in case the first etcd-operator deployment is not running, retry
 			// it until we start monitoring cluster health.
-			err = deployETCD()
-			if err != nil {
-				return err
+			_, err := k8s.Client().AppsV1beta2().Deployments(etcdDeployment.Namespace).Get(etcdDeployment.Name, meta_v1.GetOptions{})
+			if errors.IsNotFound(err) {
+				err = deployETCD(false)
+				if err != nil {
+					return err
+				}
 			}
 		}
 	}
@@ -282,7 +285,7 @@ forloop:
 			continue
 		}
 		if len(pl.Items) == 0 {
-			err := deployETCD()
+			err := deployETCD(true)
 			if err != nil {
 				log.Error(err)
 				continue
@@ -313,7 +316,7 @@ forloop:
 	}
 }
 
-func deployETCD() error {
+func deployETCD(force bool) error {
 	log.Info("Deploying etcd-operator CRD...")
 	_, err := k8s.ExtensionsClient().ApiextensionsV1beta1().CustomResourceDefinitions().Get(etcdCRD.Name, meta_v1.GetOptions{})
 	switch {
@@ -331,10 +334,8 @@ func deployETCD() error {
 	log.Info("Deploying etcd-operator deployment...")
 	etcdDeplyServer, err := k8s.Client().AppsV1beta2().Deployments(etcdDeployment.Namespace).Get(etcdDeployment.Name, meta_v1.GetOptions{})
 	switch {
-	case err == nil:
-		// If there are no available replicas running,
-		// fallthrough to re-create etcd-deployment
-		if etcdDeplyServer.Status.AvailableReplicas != 0 {
+	case err == nil && !force:
+		if etcdDeplyServer.Status.AvailableReplicas != 0 && etcdDeplyServer.DeletionTimestamp == nil {
 			etcdCpy := etcdDeployment.DeepCopy()
 			etcdCpy.UID = etcdDeplyServer.UID
 			_, err = k8s.Client().AppsV1beta2().Deployments(etcdDeployment.Namespace).Update(etcdDeployment)
@@ -343,8 +344,28 @@ func deployETCD() error {
 			}
 			break
 		}
+		// If there are no available replicas running,
+		// fallthrough to re-create etcd-deployment
+		fallthrough
+	case force:
 		fg := meta_v1.DeletePropagationForeground
 		k8s.Client().AppsV1beta2().Deployments(etcdDeployment.Namespace).Delete(etcdDeployment.Name, &meta_v1.DeleteOptions{PropagationPolicy: &fg})
+		t := time.NewTicker(2 * time.Minute)
+		for {
+			// Wait until the deployment does not exist
+			log.Info("Waiting for previous etcd-operator deployment to be removed...")
+			_, err := k8s.Client().AppsV1beta2().Deployments(etcdDeployment.Namespace).Get(etcdDeployment.Name, meta_v1.GetOptions{})
+			if errors.IsNotFound(err) {
+				t.Stop()
+				break
+			}
+			select {
+			case <-time.Tick(time.Second):
+			case <-t.C:
+				return fmt.Errorf("Timeout waiting for etcd-operator deployment to be deleted: %s", err)
+			}
+		}
+		log.Info("Done! Re-creating etcd-operator deployment...")
 		fallthrough
 	case errors.IsNotFound(err):
 		_, err := k8s.Client().AppsV1beta2().Deployments(etcdDeployment.Namespace).Create(etcdDeployment)
