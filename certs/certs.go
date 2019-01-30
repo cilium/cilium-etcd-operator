@@ -131,6 +131,7 @@ func getServerCertReq(namespace string) *csr.CertificateRequest {
 		Hosts: []string{
 			"*.cilium-etcd." + namespace + ".svc",
 			"cilium-etcd-client." + namespace + ".svc",
+			"*.mesh.cilium.io",
 			"localhost",
 		},
 		CN: "etcd server",
