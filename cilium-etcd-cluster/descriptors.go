@@ -24,8 +24,8 @@ import (
 
 // CiliumEtcdCluster returns a Cilium ETCD cluster on the given namespace
 // for the given etcd version with for the given size.
-func CiliumEtcdCluster(namespace, version string, size int, etcdEnv []v1.EnvVar) *v1beta2.EtcdCluster {
-	return &v1beta2.EtcdCluster{
+func CiliumEtcdCluster(namespace, version string, size int, etcdEnv []v1.EnvVar, affinity *v1.Affinity) *v1beta2.EtcdCluster {
+	ciliumEtcdCluster := &v1beta2.EtcdCluster{
 		ObjectMeta: meta_v1.ObjectMeta{
 			Name:      defaults.ClusterName,
 			Namespace: namespace,
@@ -44,31 +44,13 @@ func CiliumEtcdCluster(namespace, version string, size int, etcdEnv []v1.EnvVar)
 				},
 			},
 			Pod: &v1beta2.PodPolicy{
-				EtcdEnv: etcdEnv,
+				EtcdEnv:      etcdEnv,
 				Labels:       defaults.CiliumLabelsApp,
 				BusyboxImage: "docker.io/library/busybox:1.28.0-glibc",
-				Affinity: &v1.Affinity{
-					PodAntiAffinity: &v1.PodAntiAffinity{
-						PreferredDuringSchedulingIgnoredDuringExecution: []v1.WeightedPodAffinityTerm{
-							{
-								Weight: 100,
-								PodAffinityTerm: v1.PodAffinityTerm{
-									LabelSelector: &meta_v1.LabelSelector{
-										MatchExpressions: []meta_v1.LabelSelectorRequirement{
-											{
-												Key:      "etcd_cluster",
-												Operator: meta_v1.LabelSelectorOpIn,
-												Values:   []string{defaults.ClusterName},
-											},
-										},
-									},
-									TopologyKey: "kubernetes.io/hostname",
-								},
-							},
-						},
-					},
-				},
+				Affinity:     affinity,
 			},
 		},
 	}
+
+	return ciliumEtcdCluster
 }

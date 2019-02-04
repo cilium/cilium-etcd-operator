@@ -1,0 +1,20 @@
+{
+ "podAntiAffinity": {
+  "requiredDuringSchedulingIgnoredDuringExecution": [
+   {
+    "labelSelector": {
+     "matchExpressions": [
+      {
+       "key": "etcd_cluster",
+       "operator": "In",
+       "values": [
+        "cilium-etcd"
+       ]
+      }
+     ]
+    },
+    "topologyKey": "kubernetes.io/hostname"
+   }
+  ]
+ }
+}

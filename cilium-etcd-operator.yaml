@@ -24,7 +24,9 @@ spec:
         name: cilium-etcd-operator
     spec:
       containers:
-      - command:
+      - args:
+        - --etcd-affinity-file=/etcd-operator-config/etcd-affinity.json
+        command:
         - /usr/bin/cilium-etcd-operator
         env:
         - name: CILIUM_ETCD_OPERATOR_CLUSTER_DOMAIN
@@ -50,9 +52,20 @@ spec:
           value: "revision"
         - name: CILIUM_ETCD_META_ETCD_AUTO_COMPACTION_RETENTION
           value: "25000"
+        volumeMounts:
+        - mountPath: /etcd-operator-config/
+          name: etcd-operator-config
         image: docker.io/cilium/cilium-etcd-operator:v2.0.5
         imagePullPolicy: IfNotPresent
         name: cilium-etcd-operator
+      volumes:
+      - configMap:
+          defaultMode: 420
+          items:
+          - key: etcd-affinity
+            path: etcd-affinity.json
+          name: cilium-etcd-operator-config
+        name: etcd-operator-config
       dnsPolicy: ClusterFirst
       hostNetwork: true
       restartPolicy: Always
@@ -60,6 +73,34 @@ spec:
       serviceAccountName: cilium-etcd-operator
       tolerations:
       - operator: Exists
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cilium-etcd-operator-config
+  namespace: kube-system
+data:
+  etcd-affinity: |
+    {
+     "podAntiAffinity": {
+      "requiredDuringSchedulingIgnoredDuringExecution": [
+       {
+        "labelSelector": {
+         "matchExpressions": [
+          {
+           "key": "etcd_cluster",
+           "operator": "In",
+           "values": [
+            "cilium-etcd"
+           ]
+          }
+         ]
+        },
+        "topologyKey": "kubernetes.io/hostname"
+       }
+      ]
+     }
+    }
 ---
 kind: ServiceAccount
 apiVersion: v1

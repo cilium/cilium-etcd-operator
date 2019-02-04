@@ -30,7 +30,7 @@ var blockOwnerDeletion = true
 // for the given namespace.
 func EtcdOperatorDeployment(namespace, ownerName, ownerUID, operatorImage, operatorImagePullSecret string) *apps_v1beta2.Deployment {
 	nReplicas := int32(1)
-	secrets := []core_v1.LocalObjectReference{}
+	var secrets []core_v1.LocalObjectReference
 	if operatorImagePullSecret != "" {
 		imagePullSecret := core_v1.LocalObjectReference{Name: operatorImagePullSecret}
 		secrets = append(secrets, imagePullSecret)
