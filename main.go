@@ -15,7 +15,9 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/signal"
 	"strings"
@@ -81,6 +83,7 @@ var (
 
 	clusterDomain           string
 	clusterSize             int
+	etcdAffinityFile        string
 	quorumSize              int
 	gracePeriodSec          int64
 	etcdVersion             string
@@ -131,6 +134,8 @@ func init() {
 	flags.StringVar(&operatorImagePullSecret,
 		"operator-image-pull-secret", "", "Secret to be used for Image Pull")
 	viper.BindEnv("operator-image-pull-secret", "CILIUM_ETCD_OPERATOR_IMAGE_PULL_SECRET")
+	flags.StringVar(&etcdAffinityFile, "etcd-affinity-file", "", "JSON file with the etcd affinity for etcd pods (JSON schema of k8s.io/api/core/v1/types.Affinity)")
+	viper.BindEnv("etcd-affinity-file", "CILIUM_ETCD_OPERATOR_ETCD_AFFINITY_FILE")
 
 	viper.BindEnv("pod-name", "CILIUM_ETCD_OPERATOR_POD_NAME")
 	viper.BindEnv("pod-uid", "CILIUM_ETCD_OPERATOR_POD_UID")
@@ -172,11 +177,25 @@ func parseFlags() {
 	generateCerts = viper.GetBool("generate-certs")
 	operatorImage = viper.GetString("operator-image")
 	operatorImagePullSecret = viper.GetString("operator-image-pull-secret")
+	etcdAffinityFile = viper.GetString("etcd-affinity-file")
 	etcdEnvVar := parseEtcdEnv()
+
+	var affinity *v1.Affinity
+	if etcdAffinityFile != "" {
+		b, err := ioutil.ReadFile(etcdAffinityFile)
+		if err != nil {
+			log.Fatalf("Unable to read etcd-affinity file %q: %s", etcdAffinityFile, err)
+		}
+		affinity = &v1.Affinity{}
+		err = json.Unmarshal(b, affinity)
+		if err != nil {
+			log.Fatalf("Unable to parse etcd-affinity file %q: %s", etcdAffinityFile, err)
+		}
+	}
 
 	etcdCRD = etcd_operator.EtcdCRD(ownerName, ownerUID)
 	etcdDeployment = etcd_operator.EtcdOperatorDeployment(namespace, ownerName, ownerUID, operatorImage, operatorImagePullSecret)
-	ciliumEtcdCR = cilium_etcd_cluster.CiliumEtcdCluster(namespace, etcdVersion, clusterSize, etcdEnvVar)
+	ciliumEtcdCR = cilium_etcd_cluster.CiliumEtcdCluster(namespace, etcdVersion, clusterSize, etcdEnvVar, affinity)
 	gracePeriod = time.Duration(gracePeriodSec) * time.Second
 }
 
