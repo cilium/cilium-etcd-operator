@@ -104,6 +104,8 @@ rules:
   - pods
   verbs:
   - list
+  - get
+  - delete
 - apiGroups:
   - apps
   resources:
