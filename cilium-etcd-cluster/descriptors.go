@@ -24,7 +24,11 @@ import (
 
 // CiliumEtcdCluster returns a Cilium ETCD cluster on the given namespace
 // for the given etcd version with for the given size.
-func CiliumEtcdCluster(namespace, version string, size int, etcdEnv []v1.EnvVar, affinity *v1.Affinity) *v1beta2.EtcdCluster {
+func CiliumEtcdCluster(namespace, version string, size int, etcdEnv []v1.EnvVar, affinity *v1.Affinity, nodeSelector map[string]string) *v1beta2.EtcdCluster {
+	var etcdNodeSelector map[string]string
+	if len(nodeSelector) != 0 {
+		etcdNodeSelector = nodeSelector
+	}
 	ciliumEtcdCluster := &v1beta2.EtcdCluster{
 		ObjectMeta: meta_v1.ObjectMeta{
 			Name:      defaults.ClusterName,
@@ -48,6 +52,7 @@ func CiliumEtcdCluster(namespace, version string, size int, etcdEnv []v1.EnvVar,
 				Labels:       defaults.CiliumLabelsApp,
 				BusyboxImage: "docker.io/library/busybox:1.28.0-glibc",
 				Affinity:     affinity,
+				NodeSelector: etcdNodeSelector,
 			},
 		},
 	}

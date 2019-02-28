@@ -26,6 +26,7 @@ spec:
       containers:
       - args:
         - --etcd-affinity-file=/etcd-operator-config/etcd-affinity.json
+        #- --etcd-node-selector=disktype=ssd,cputype=high
         command:
         - /usr/bin/cilium-etcd-operator
         env:
