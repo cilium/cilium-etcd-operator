@@ -84,6 +84,7 @@ var (
 	clusterDomain           string
 	clusterSize             int
 	etcdAffinityFile        string
+	etcdNodeSelector        map[string]string
 	quorumSize              int
 	gracePeriodSec          int64
 	etcdVersion             string
@@ -136,6 +137,8 @@ func init() {
 	viper.BindEnv("operator-image-pull-secret", "CILIUM_ETCD_OPERATOR_IMAGE_PULL_SECRET")
 	flags.StringVar(&etcdAffinityFile, "etcd-affinity-file", "", "JSON file with the etcd affinity for etcd pods (JSON schema of k8s.io/api/core/v1/types.Affinity)")
 	viper.BindEnv("etcd-affinity-file", "CILIUM_ETCD_OPERATOR_ETCD_AFFINITY_FILE")
+	flags.StringToStringVar(&etcdNodeSelector, "etcd-node-selector", map[string]string{}, "etcd node selector")
+	viper.BindEnv("etcd-node-selector", "CILIUM_ETCD_OPERATOR_ETCD_NODE_SELECTOR")
 
 	viper.BindEnv("pod-name", "CILIUM_ETCD_OPERATOR_POD_NAME")
 	viper.BindEnv("pod-uid", "CILIUM_ETCD_OPERATOR_POD_UID")
@@ -178,6 +181,11 @@ func parseFlags() {
 	operatorImage = viper.GetString("operator-image")
 	operatorImagePullSecret = viper.GetString("operator-image-pull-secret")
 	etcdAffinityFile = viper.GetString("etcd-affinity-file")
+	// viper does not get the maps directly from the CLI with viper.GetStringMapString
+	if len(etcdNodeSelector) == 0 {
+		etcdNodeSelector = viper.GetStringMapString("etcd-node-selector")
+
+	}
 	etcdEnvVar := parseEtcdEnv()
 
 	var affinity *v1.Affinity
@@ -195,7 +203,7 @@ func parseFlags() {
 
 	etcdCRD = etcd_operator.EtcdCRD(ownerName, ownerUID)
 	etcdDeployment = etcd_operator.EtcdOperatorDeployment(namespace, ownerName, ownerUID, operatorImage, operatorImagePullSecret)
-	ciliumEtcdCR = cilium_etcd_cluster.CiliumEtcdCluster(namespace, etcdVersion, clusterSize, etcdEnvVar, affinity)
+	ciliumEtcdCR = cilium_etcd_cluster.CiliumEtcdCluster(namespace, etcdVersion, clusterSize, etcdEnvVar, affinity, etcdNodeSelector)
 	gracePeriod = time.Duration(gracePeriodSec) * time.Second
 }
 
