@@ -91,6 +91,7 @@ var (
 	gracePeriod             time.Duration
 	namespace               string
 	preFlight               bool
+	etcdImageRepository     string
 	generateCerts           bool
 	operatorImage           string
 	operatorImagePullSecret string
@@ -126,6 +127,9 @@ func init() {
 	flags.BoolVar(&preFlight,
 		"pre-flight", false, "Run in pre-flight mode.")
 	viper.BindEnv("pre-flight", "CILIUM_ETCD_OPERATOR_PRE_FLIGHT")
+	flags.StringVar(&etcdImageRepository,
+		"etcd-image-repository", "quay.io/coreos/etcd", "Name of the repository that hosts etcd container images.")
+	viper.BindEnv("etcd-image-repository", "CILIUM_ETCD_OPERATOR_ETCD_IMAGE_REPOSITORY")
 	flags.BoolVar(&generateCerts,
 		"generate-certs", true, "Generate and deploy TLS certificates")
 	viper.BindEnv("generate-certs", "CILIUM_ETCD_OPERATOR_GENERATE_CERTS")
@@ -171,6 +175,7 @@ func parseFlags() {
 	clusterDomain = viper.GetString("cluster-domain")
 	clusterSize = viper.GetInt("etcd-cluster-size")
 	quorumSize = (clusterSize / 2) + (clusterSize % 2)
+	etcdImageRepository = viper.GetString("etcd-image-repository")
 	etcdVersion = viper.GetString("etcd-version")
 	gracePeriodSec = viper.GetInt64("grace-period-seconds")
 	namespace = viper.GetString("namespace")
@@ -203,7 +208,7 @@ func parseFlags() {
 
 	etcdCRD = etcd_operator.EtcdCRD(ownerName, ownerUID)
 	etcdDeployment = etcd_operator.EtcdOperatorDeployment(namespace, ownerName, ownerUID, operatorImage, operatorImagePullSecret)
-	ciliumEtcdCR = cilium_etcd_cluster.CiliumEtcdCluster(namespace, etcdVersion, clusterSize, etcdEnvVar, affinity, etcdNodeSelector)
+	ciliumEtcdCR = cilium_etcd_cluster.CiliumEtcdCluster(namespace, etcdImageRepository, etcdVersion, clusterSize, etcdEnvVar, affinity, etcdNodeSelector)
 	gracePeriod = time.Duration(gracePeriodSec) * time.Second
 }
 

@@ -24,7 +24,7 @@ import (
 
 // CiliumEtcdCluster returns a Cilium ETCD cluster on the given namespace
 // for the given etcd version with for the given size.
-func CiliumEtcdCluster(namespace, version string, size int, etcdEnv []v1.EnvVar, affinity *v1.Affinity, nodeSelector map[string]string) *v1beta2.EtcdCluster {
+func CiliumEtcdCluster(namespace, repository, version string, size int, etcdEnv []v1.EnvVar, affinity *v1.Affinity, nodeSelector map[string]string) *v1beta2.EtcdCluster {
 	var etcdNodeSelector map[string]string
 	if len(nodeSelector) != 0 {
 		etcdNodeSelector = nodeSelector
@@ -36,8 +36,9 @@ func CiliumEtcdCluster(namespace, version string, size int, etcdEnv []v1.EnvVar,
 			Labels:    defaults.CiliumLabelsApp,
 		},
 		Spec: v1beta2.ClusterSpec{
-			Size:    size,
-			Version: version,
+			Size:       size,
+			Repository: repository,
+			Version:    version,
 			TLS: &v1beta2.TLSPolicy{
 				Static: &v1beta2.StaticTLS{
 					Member: &v1beta2.MemberSecret{
