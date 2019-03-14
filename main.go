@@ -68,7 +68,9 @@ var (
 				log.Println("Running in pre-flight mode...")
 				handleCleanup(cleanUPWg, cleanUPSig, func() {})
 			} else {
-				handleCleanup(cleanUPWg, cleanUPSig, cleanUp)
+				if !noCleanup {
+					handleCleanup(cleanUPWg, cleanUPSig, cleanUp)
+				}
 				err := run()
 				if err != nil {
 					log.Error(err)
@@ -93,6 +95,7 @@ var (
 	preFlight               bool
 	etcdImageRepository     string
 	generateCerts           bool
+	noCleanup               bool
 	operatorImage           string
 	operatorImagePullSecret string
 
@@ -133,6 +136,9 @@ func init() {
 	flags.BoolVar(&generateCerts,
 		"generate-certs", true, "Generate and deploy TLS certificates")
 	viper.BindEnv("generate-certs", "CILIUM_ETCD_OPERATOR_GENERATE_CERTS")
+	flags.BoolVar(&noCleanup,
+		"no-cleanup", false, "Do not cleanup resources on exit")
+	viper.BindEnv("no-cleanup", "CILIUM_ETCD_OPERATOR_NO_CLEANUP")
 	flags.StringVar(&operatorImage,
 		"operator-image", defaults.DefaultOperatorImage, "Etcd Operator Image to be used")
 	viper.BindEnv("operator-image", "CILIUM_ETCD_OPERATOR_IMAGE")
@@ -183,6 +189,7 @@ func parseFlags() {
 	ownerUID := viper.GetString("pod-uid")
 	preFlight = viper.GetBool("pre-flight")
 	generateCerts = viper.GetBool("generate-certs")
+	noCleanup = viper.GetBool("no-cleanup")
 	operatorImage = viper.GetString("operator-image")
 	operatorImagePullSecret = viper.GetString("operator-image-pull-secret")
 	etcdAffinityFile = viper.GetString("etcd-affinity-file")
@@ -206,7 +213,7 @@ func parseFlags() {
 		}
 	}
 
-	etcdCRD = etcd_operator.EtcdCRD(ownerName, ownerUID)
+	etcdCRD = etcd_operator.EtcdCRD()
 	etcdDeployment = etcd_operator.EtcdOperatorDeployment(namespace, ownerName, ownerUID, operatorImage, operatorImagePullSecret)
 	ciliumEtcdCR = cilium_etcd_cluster.CiliumEtcdCluster(namespace, etcdImageRepository, etcdVersion, clusterSize, etcdEnvVar, affinity, etcdNodeSelector)
 	gracePeriod = time.Duration(gracePeriodSec) * time.Second
@@ -241,31 +248,10 @@ func run() error {
 		panic(err)
 	}
 
-	// Generate and create TLS Certs based on the commandline flags
-	if generateCerts {
-		log.Info("Generating TLS certificates...")
-		// generate all certificates that we will use
-		m, err := certs.GenCertificates(namespace, clusterDomain)
-		if err != nil {
-			return err
-		}
-		// Deploying all secrets
-		err = deploySecrets(namespace, m)
-		if err != nil {
-			return err
-		}
-		// We don't need to certificates so we can clean them up
-		m = map[string]map[string][]byte{}
-
-		err = deriveCiliumSecrets()
-		if err != nil {
-			return err
-		}
-
-	} else {
-		log.Info("Skipping TLS Certificates generation..")
+	err = ensureCerts()
+	if err != nil {
+		return err
 	}
-
 	err = deployETCD(false)
 	if err != nil {
 		return err
@@ -346,6 +332,60 @@ forloop:
 			continue
 		}
 	}
+}
+
+func checkCerts() (bool, error) {
+	log.Info("Checking old certs...")
+
+	secrets := []string{
+		defaults.CiliumEtcdClientTLS,
+		defaults.CiliumEtcdServerTLS,
+		defaults.CiliumEtcdPeerTLS,
+		defaults.CiliumEtcdSecrets,
+	}
+	for _, secret := range secrets {
+		_, err := k8s.Client().CoreV1().Secrets(namespace).Get(secret, meta_v1.GetOptions{})
+		switch {
+		case err == nil:
+		case errors.IsNotFound(err):
+			return false, nil
+		default:
+			return false, err
+		}
+	}
+	return true, nil
+}
+
+func ensureCerts() error {
+	if !generateCerts {
+		valid, err := checkCerts()
+		if err != nil {
+			return err
+		}
+		if valid {
+			log.Info("Reuse existing TLS certificates")
+			return nil
+		}
+	}
+
+	log.Info("Generating TLS certificates...")
+
+	// generate all certificates that we will use
+	m, err := certs.GenCertificates(namespace, clusterDomain)
+	if err != nil {
+		return err
+	}
+	// Deploying all secrets
+	err = deploySecrets(namespace, m)
+	if err != nil {
+		return err
+	}
+	err = deriveCiliumSecrets()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func deployETCD(force bool) error {
