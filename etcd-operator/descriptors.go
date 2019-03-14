@@ -99,19 +99,10 @@ func EtcdOperatorDeployment(namespace, ownerName, ownerUID, operatorImage, opera
 }
 
 // EtcdCRD returns the etcd CRD.
-func EtcdCRD(ownerName, ownerUID string) *apiextensions_v1beta1.CustomResourceDefinition {
+func EtcdCRD() *apiextensions_v1beta1.CustomResourceDefinition {
 	return &apiextensions_v1beta1.CustomResourceDefinition{
 		ObjectMeta: meta_v1.ObjectMeta{
 			Name: "etcdclusters.etcd.database.coreos.com",
-			OwnerReferences: []meta_v1.OwnerReference{
-				{
-					APIVersion:         "v1",
-					Kind:               "Pod",
-					Name:               ownerName,
-					UID:                types.UID(ownerUID),
-					BlockOwnerDeletion: &blockOwnerDeletion,
-				},
-			},
 		},
 		Spec: apiextensions_v1beta1.CustomResourceDefinitionSpec{
 			Group: "etcd.database.coreos.com",
