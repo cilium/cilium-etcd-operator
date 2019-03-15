@@ -46,7 +46,7 @@
 
 [[constraint]]
   name = "github.com/coreos/etcd-operator"
-  revision = "v0.9.3"
+  revision = "v0.9.4"
 
 [[constraint]]
   name = "github.com/cloudflare/cfssl"
