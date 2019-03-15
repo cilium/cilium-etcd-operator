@@ -332,6 +332,17 @@
 
 [[projects]]
   branch = "master"
+  digest = "1:13d575ad6576f56693a410e77830da614005f87955e7cd2ac6afbf9b54afd651"
+  name = "golang.org/x/oauth2"
+  packages = [
+    ".",
+    "internal",
+  ]
+  pruneopts = "NUT"
+  revision = "e64efc72b421e893cbf63f17ba2221e7d6d0b0f3"
+
+[[projects]]
+  branch = "master"
   digest = "1:710483a12b766fb0e99ab26cbf6f82df2d958e94cb28890fcb2db96f76d39762"
   name = "golang.org/x/sys"
   packages = [
@@ -373,6 +384,22 @@
   revision = "85acf8d2951cb2a3bde7632f9ff273ef0379bcbd"
 
 [[projects]]
+  digest = "1:34c10243da5972105edd1b4b883e2bd918fbb3f73fbe14d6af6929e547173494"
+  name = "google.golang.org/appengine"
+  packages = [
+    "internal",
+    "internal/base",
+    "internal/datastore",
+    "internal/log",
+    "internal/remote_api",
+    "internal/urlfetch",
+    "urlfetch",
+  ]
+  pruneopts = "NUT"
+  revision = "e9657d882bb81064595ca3b56cbe2546bbabf7b1"
+  version = "v1.4.0"
+
+[[projects]]
   digest = "1:2d1fbdc6777e5408cabeb02bf336305e724b925ff4546ded0fa8715a7267922a"
   name = "gopkg.in/inf.v0"
   packages = ["."]
@@ -389,7 +416,7 @@
   version = "v2.2.1"
 
 [[projects]]
-  digest = "1:66dba704ec98aef0d6485f4fcfe544c906a7319fb2b20e0de4181b46a3b24c8a"
+  digest = "1:4485f6050feae6844efd79bce3f5b35e5ed4a21dd79ef6a2dbbee263531cea09"
   name = "k8s.io/api"
   packages = [
     "admissionregistration/v1alpha1",
@@ -403,10 +430,12 @@
     "authorization/v1beta1",
     "autoscaling/v1",
     "autoscaling/v2beta1",
+    "autoscaling/v2beta2",
     "batch/v1",
     "batch/v1beta1",
     "batch/v2alpha1",
     "certificates/v1beta1",
+    "coordination/v1beta1",
     "core/v1",
     "events/v1beta1",
     "extensions/v1beta1",
@@ -423,10 +452,10 @@
     "storage/v1beta1",
   ]
   pruneopts = "NUT"
-  revision = "kubernetes-1.11.4"
+  revision = "kubernetes-1.12.6"
 
 [[projects]]
-  digest = "1:e762108455a2930c3d35d270c67192f67c4d68135391e29dae2506156c630cd1"
+  digest = "1:51f330b7a61ac0e8b6e082490586ff2b18008eb514a67eccbe5ec78ffd32ee25"
   name = "k8s.io/apiextensions-apiserver"
   packages = [
     "pkg/apis/apiextensions",
@@ -436,10 +465,10 @@
     "pkg/client/clientset/clientset/typed/apiextensions/v1beta1",
   ]
   pruneopts = "NUT"
-  revision = "kubernetes-1.11.4"
+  revision = "kubernetes-1.12.6"
 
 [[projects]]
-  digest = "1:9c366639c38f347bf6a05e18b943a39fb6030a10d58c3686b518248660551a6f"
+  digest = "1:350463458aec64ea4e2d7a81675b8cf0920080f42ddb5fb582c37e5e2b6026f3"
   name = "k8s.io/apimachinery"
   packages = [
     "pkg/api/errors",
@@ -467,6 +496,7 @@
     "pkg/util/framer",
     "pkg/util/intstr",
     "pkg/util/json",
+    "pkg/util/naming",
     "pkg/util/net",
     "pkg/util/runtime",
     "pkg/util/sets",
@@ -479,10 +509,10 @@
     "third_party/forked/golang/reflect",
   ]
   pruneopts = "NUT"
-  revision = "kubernetes-1.11.4"
+  revision = "kubernetes-1.12.6"
 
 [[projects]]
-  digest = "1:2d056245c5d0be62e0cee5fc50dea43f2130985c93550764eae608c92072759e"
+  digest = "1:9296ce083b09dc9a47379047a5103ea6d811babd1860e0e32dc9669df685f164"
   name = "k8s.io/client-go"
   packages = [
     "discovery",
@@ -499,10 +529,12 @@
     "kubernetes/typed/authorization/v1beta1",
     "kubernetes/typed/autoscaling/v1",
     "kubernetes/typed/autoscaling/v2beta1",
+    "kubernetes/typed/autoscaling/v2beta2",
     "kubernetes/typed/batch/v1",
     "kubernetes/typed/batch/v1beta1",
     "kubernetes/typed/batch/v2alpha1",
     "kubernetes/typed/certificates/v1beta1",
+    "kubernetes/typed/coordination/v1beta1",
     "kubernetes/typed/core/v1",
     "kubernetes/typed/events/v1beta1",
     "kubernetes/typed/extensions/v1beta1",
@@ -534,7 +566,7 @@
     "util/integer",
   ]
   pruneopts = "NUT"
-  revision = "kubernetes-1.11.4"
+  revision = "kubernetes-1.12.6"
 
 [solve-meta]
   analyzer-name = "dep"
