@@ -96,6 +96,7 @@ var (
 	etcdImageRepository     string
 	generateCerts           bool
 	cleanUpOnExit           bool
+	busyboxImage            string
 	operatorImage           string
 	operatorImagePullSecret string
 
@@ -139,6 +140,9 @@ func init() {
 	flags.BoolVar(&cleanUpOnExit,
 		"cleanup", true, "Cleanup resources on exit")
 	viper.BindEnv("cleanup", "CILIUM_ETCD_OPERATOR_CLEANUP")
+	flags.StringVar(&busyboxImage,
+		"busybox-image", defaults.DefaultBusyboxImage, "Busybox image used for ETCD init container")
+	viper.BindEnv("busybox-image", "CILIUM_ETCD_BUSYBOX_IMAGE")
 	flags.StringVar(&operatorImage,
 		"operator-image", defaults.DefaultOperatorImage, "Etcd Operator Image to be used")
 	viper.BindEnv("operator-image", "CILIUM_ETCD_OPERATOR_IMAGE")
@@ -215,7 +219,7 @@ func parseFlags() {
 
 	etcdCRD = etcd_operator.EtcdCRD()
 	etcdDeployment = etcd_operator.EtcdOperatorDeployment(namespace, ownerName, ownerUID, operatorImage, operatorImagePullSecret)
-	ciliumEtcdCR = cilium_etcd_cluster.CiliumEtcdCluster(namespace, etcdImageRepository, etcdVersion, clusterSize, etcdEnvVar, affinity, etcdNodeSelector)
+	ciliumEtcdCR = cilium_etcd_cluster.CiliumEtcdCluster(namespace, etcdImageRepository, etcdVersion, clusterSize, etcdEnvVar, affinity, etcdNodeSelector, busyboxImage)
 	gracePeriod = time.Duration(gracePeriodSec) * time.Second
 }
 

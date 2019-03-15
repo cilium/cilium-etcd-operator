@@ -30,6 +30,8 @@ var (
 
 	DefaultOperatorImage = "quay.io/coreos/etcd-operator:v0.9.3"
 
+	DefaultBusyboxImage = "docker.io/library/busybox:1.28.0-glibc"
+
 	DefaultNamespace = "kube-system"
 
 	ClusterDomain = "cluster.local"
