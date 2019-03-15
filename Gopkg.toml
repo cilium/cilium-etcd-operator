@@ -58,7 +58,7 @@
 
 [[constraint]]
   name = "github.com/spf13/viper"
-  revision = "v1.2.1"
+  revision = "v1.3.2"
 
 [prune]
   non-go = true
