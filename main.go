@@ -194,6 +194,7 @@ func parseFlags() {
 	preFlight = viper.GetBool("pre-flight")
 	generateCerts = viper.GetBool("generate-certs")
 	cleanUpOnExit = viper.GetBool("cleanup")
+	busyboxImage = viper.GetString("busybox-image")
 	operatorImage = viper.GetString("operator-image")
 	operatorImagePullSecret = viper.GetString("operator-image-pull-secret")
 	etcdAffinityFile = viper.GetString("etcd-affinity-file")
