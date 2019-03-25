@@ -25,7 +25,6 @@ spec:
     spec:
       containers:
       - args:
-        - --etcd-affinity-file=/etcd-operator-config/etcd-affinity.json
         #- --etcd-node-selector=disktype=ssd,cputype=high
         command:
         - /usr/bin/cilium-etcd-operator
@@ -59,14 +58,6 @@ spec:
         image: docker.io/cilium/cilium-etcd-operator:v2.0.5
         imagePullPolicy: IfNotPresent
         name: cilium-etcd-operator
-      volumes:
-      - configMap:
-          defaultMode: 420
-          items:
-          - key: etcd-affinity
-            path: etcd-affinity.json
-          name: cilium-etcd-operator-config
-        name: etcd-operator-config
       dnsPolicy: ClusterFirst
       hostNetwork: true
       restartPolicy: Always
@@ -74,34 +65,6 @@ spec:
       serviceAccountName: cilium-etcd-operator
       tolerations:
       - operator: Exists
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: cilium-etcd-operator-config
-  namespace: kube-system
-data:
-  etcd-affinity: |
-    {
-     "podAntiAffinity": {
-      "requiredDuringSchedulingIgnoredDuringExecution": [
-       {
-        "labelSelector": {
-         "matchExpressions": [
-          {
-           "key": "etcd_cluster",
-           "operator": "In",
-           "values": [
-            "cilium-etcd"
-           ]
-          }
-         ]
-        },
-        "topologyKey": "kubernetes.io/hostname"
-       }
-      ]
-     }
-    }
 ---
 kind: ServiceAccount
 apiVersion: v1
