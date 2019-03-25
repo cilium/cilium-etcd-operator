@@ -142,7 +142,7 @@ func init() {
 	viper.BindEnv("cleanup", "CILIUM_ETCD_OPERATOR_CLEANUP")
 	flags.StringVar(&busyboxImage,
 		"busybox-image", defaults.DefaultBusyboxImage, "Busybox image used for ETCD init container")
-	viper.BindEnv("busybox-image", "CILIUM_ETCD_BUSYBOX_IMAGE")
+	viper.BindEnv("busybox-image", "CILIUM_ETCD_OPERATOR_BUSYBOX_IMAGE")
 	flags.StringVar(&operatorImage,
 		"operator-image", defaults.DefaultOperatorImage, "Etcd Operator Image to be used")
 	viper.BindEnv("operator-image", "CILIUM_ETCD_OPERATOR_IMAGE")
