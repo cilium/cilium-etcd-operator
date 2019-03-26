@@ -12,6 +12,7 @@
  - Bump etcd-operator to `v0.9.4` (https://github.com/cilium/cilium-etcd-operator/pull/49)
  - Bump default etcd to `3.3.12` (https://github.com/cilium/cilium-etcd-operator/pull/49)
  - Add the ability to run an already deployed CRD and CR (Check README.md for "Deployment with an existing EtcdCluster custom resource")
+ - `cilium-etcd-operator version` will report the version being used  (https://github.com/cilium/cilium-etcd-operator/pull/61)
  
 ###**Bug fixes**:
  - Fix missing delete RBAC permissions in k8s descriptor (https://github.com/cilium/cilium-etcd-operator/pull/40)

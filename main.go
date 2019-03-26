@@ -28,6 +28,7 @@ import (
 	"github.com/cilium/cilium-etcd-operator/etcd-operator"
 	"github.com/cilium/cilium-etcd-operator/pkg/defaults"
 	"github.com/cilium/cilium-etcd-operator/pkg/k8s"
+	"github.com/cilium/cilium-etcd-operator/pkg/version"
 
 	"github.com/coreos/etcd-operator/pkg/apis/etcd/v1beta2"
 	"github.com/sirupsen/logrus"
@@ -103,6 +104,18 @@ var (
 
 	closeOnce sync.Once
 )
+
+var versionCmd = &cobra.Command{
+	Use:   "version",
+	Short: "Print version information",
+	Run: func(cmd *cobra.Command, args []string) {
+		fmt.Printf("%s\n", version.Version)
+	},
+}
+
+func init() {
+	RootCmd.AddCommand(versionCmd)
+}
 
 func init() {
 	cobra.OnInitialize(func() {
