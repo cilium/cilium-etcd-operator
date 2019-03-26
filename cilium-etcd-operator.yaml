@@ -1,4 +1,5 @@
-apiVersion: extensions/v1beta1
+---
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
@@ -52,9 +53,6 @@ spec:
           value: "revision"
         - name: CILIUM_ETCD_META_ETCD_AUTO_COMPACTION_RETENTION
           value: "25000"
-        volumeMounts:
-        - mountPath: /etcd-operator-config/
-          name: etcd-operator-config
         image: docker.io/cilium/cilium-etcd-operator:v2.0.5
         imagePullPolicy: IfNotPresent
         name: cilium-etcd-operator
@@ -66,17 +64,16 @@ spec:
       tolerations:
       - operator: Exists
 ---
-kind: ServiceAccount
 apiVersion: v1
+kind: ServiceAccount
 metadata:
   name: cilium-etcd-operator
   namespace: kube-system
 ---
-apiVersion: rbac.authorization.k8s.io/v1beta1
+apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: cilium-etcd-operator
-  namespace: kube-system
 rules:
 - apiGroups:
   - etcd.database.coreos.com
@@ -149,7 +146,6 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: cilium-etcd-operator
-  namespace: kube-system
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
@@ -165,11 +161,10 @@ metadata:
   name: cilium-etcd-sa
   namespace: kube-system
 ---
-apiVersion: rbac.authorization.k8s.io/v1beta1
+apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: etcd-operator
-  namespace: kube-system
 rules:
 - apiGroups:
   - etcd.database.coreos.com
@@ -219,11 +214,10 @@ rules:
   verbs:
   - get
 ---
-apiVersion: rbac.authorization.k8s.io/v1beta1
+apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: etcd-operator
-  namespace: kube-system
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
