@@ -12,8 +12,6 @@ spec:
       lists. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata'
     name: Age
     type: date
-  conversion:
-    strategy: None
   group: etcd.database.coreos.com
   names:
     kind: EtcdCluster
