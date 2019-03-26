@@ -1,0 +1,38 @@
+apiVersion: etcd.database.coreos.com/v1beta2
+kind: EtcdCluster
+metadata:
+  labels:
+    io.cilium/app: etcd-operator
+  name: cilium-etcd
+  namespace: kube-system
+spec:
+  TLS:
+    static:
+      member:
+        peerSecret: cilium-etcd-peer-tls
+        serverSecret: cilium-etcd-server-tls
+      operatorSecret: cilium-etcd-client-tls
+  pod:
+    affinity:
+      podAntiAffinity:
+        preferredDuringSchedulingIgnoredDuringExecution:
+        - podAffinityTerm:
+            labelSelector:
+              matchExpressions:
+              - key: etcd_cluster
+                operator: In
+                values:
+                - cilium-etcd
+            topologyKey: kubernetes.io/hostname
+          weight: 100
+    busyboxImage: docker.io/library/busybox:1.28.0-glibc
+    etcdEnv:
+    - name: ETCD_AUTO_COMPACTION_MODE
+      value: revision
+    - name: ETCD_AUTO_COMPACTION_RETENTION
+      value: "25000"
+    labels:
+      io.cilium/app: etcd-operator
+  repository: quay.io/coreos/etcd
+  size: 3
+  version: 3.3.12
