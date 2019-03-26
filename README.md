@@ -39,19 +39,70 @@ pod:
 
 # Deployment
 
-*Warning:* Deploying the cilium-etcd-operator will automatically overwrite the
-Kubernetes secret `cilium-etcd-secrets`. If you have configured Cilium to use
-an external etcd, it is likely using the same secret name so deploying the
-cilium-etcd-operator will overwrite that secret.
+Deploying the cilium-etcd-operator will automatically only create the Kubernetes
+secret `cilium-etcd-secrets` if it does not exist. If you have configured Cilium
+to use an external etcd, it is likely using the same secret name so deploying the
+cilium-etcd-operator will not overwrite that secret.
 
-If you already have a mechanism to generate certs and to avoid fresh certificate generation/overwrites to existing ones, set the following environment variable:
+If you want to overwrite the certificates every time you restart
+`cilium-etcd-operator` set the following environment variable:
 
 ```
-CILIUM_ETCD_OPERATOR_GENERATE_CERTS=false
+        - name: CILIUM_ETCD_OPERATOR_GENERATE_CERTS
+          value: "true"
 ```
+
+in the `cilium-etcd-operator.yaml` file and apply your changes with:
 
 ```
 kubectl apply -f https://raw.githubusercontent.com/cilium/cilium-etcd-operator/master/cilium-etcd-operator.yaml
+```
+
+# (Optional) Deployment with an existing EtcdCluster custom resource
+
+Optionally, since `v2.0.6` `cilium-etcd-operator` has the ability to re-use an
+existing `EtcdCluster` deployed by the user. As an example, you can change the
+sample `cilium-cr.yaml` to add more functionalities offered by `etcd-operator`
+such as [affinity](https://github.com/coreos/etcd-operator/blob/v0.9.4/doc/user/spec_examples.md#three-member-cluster-with-node-selector-and-anti-affinity-across-nodes)
+or even [set tolerations for the etcd pods](https://github.com/coreos/etcd-operator/blob/v0.9.4/pkg/apis/etcd/v1beta2/cluster.go#L127).
+The schema of this resource can be found [here](https://github.com/coreos/etcd-operator/blob/v0.9.4/pkg/apis/etcd/v1beta2/cluster.go#L67)
+
+First you have to make sure you have the custom resource definition
+`etcdclusters.etcd.database.coreos.com` already deployed in your kubernetes
+cluster. If not, you can deploy with:
+
+```
+kubectl apply -f https://raw.githubusercontent.com/cilium/cilium-etcd-operator/master/etcd-crd.yaml
+```
+
+After that, you can deploy the cilium `EtcdCluster` custom resource:
+```
+kubectl apply -f https://raw.githubusercontent.com/cilium/cilium-etcd-operator/master/cilium-cr.yaml
+```
+
+If you set up the `etcdclusters.etcd.database.coreos.com` CRD and `EtcdCluster`
+CR, you can change the following RBAC of `cilium-etcd-operator` ClusterRole from:
+
+```yaml
+- apiGroups:
+  - apiextensions.k8s.io
+  resources:
+  - customresourcedefinitions
+  verbs:
+  - delete
+  - get
+  - create
+```
+
+to
+
+```yaml
+- apiGroups:
+  - apiextensions.k8s.io
+  resources:
+  - customresourcedefinitions
+  verbs:
+  - get
 ```
 
 # Verification
@@ -68,7 +119,7 @@ cilium-etcd-mdwk9s99r5   1/1     Running   0          28h
 cilium-etcd-zm52g4mqfv   1/1     Running   0          28h
 ```
 
-It will also have created secrets to allow access to the etcd:
+It will also have, if they don't exist, created secrets to allow access to the etcd:
 
 ```
 kubectl -n kube-system get secret | grep cilium-
