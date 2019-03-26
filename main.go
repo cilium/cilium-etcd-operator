@@ -434,12 +434,12 @@ func deployETCD(force bool) error {
 		fg := meta_v1.DeletePropagationForeground
 		k8s.Client().AppsV1beta2().Deployments(etcdDeployment.Namespace).Delete(etcdDeployment.Name, &meta_v1.DeleteOptions{PropagationPolicy: &fg})
 		t := time.NewTicker(2 * time.Minute)
+		defer t.Stop()
 		for {
 			// Wait until the deployment does not exist
 			log.Info("Waiting for previous etcd-operator deployment to be removed...")
 			_, err := k8s.Client().AppsV1beta2().Deployments(etcdDeployment.Namespace).Get(etcdDeployment.Name, meta_v1.GetOptions{})
 			if errors.IsNotFound(err) {
-				t.Stop()
 				break
 			}
 			select {
