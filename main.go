@@ -446,11 +446,12 @@ func deployETCD(force bool) error {
 
 func deployCiliumCR(force bool) error {
 	log.Info("Deploying Cilium etcd cluster CR...")
-	_, err := k8s.EtcdClient().EtcdV1beta2().EtcdClusters(ciliumEtcdCR.Namespace).Get(ciliumEtcdCR.Name, meta_v1.GetOptions{})
+	ciliumCR, err := k8s.EtcdClient().EtcdV1beta2().EtcdClusters(ciliumEtcdCR.Namespace).Get(ciliumEtcdCR.Name, meta_v1.GetOptions{})
 	switch {
-	case force:
-		k8s.EtcdClient().EtcdV1beta2().EtcdClusters(ciliumEtcdCR.Namespace).Delete(ciliumEtcdCR.Name, &meta_v1.DeleteOptions{})
-		fallthrough
+	case err == nil && force:
+		// Clear state for already running deployments
+		ciliumCR.Status = v1beta2.ClusterStatus{}
+		k8s.EtcdClient().EtcdV1beta2().EtcdClusters(ciliumEtcdCR.Namespace).Update(ciliumCR)
 	case errors.IsNotFound(err):
 		_, err := k8s.EtcdClient().EtcdV1beta2().EtcdClusters(ciliumEtcdCR.Namespace).Create(ciliumEtcdCR)
 		if err != nil {
