@@ -132,7 +132,7 @@ func init() {
 		"etcd-image-repository", "quay.io/coreos/etcd", "Name of the repository that hosts etcd container images.")
 	viper.BindEnv("etcd-image-repository", "CILIUM_ETCD_OPERATOR_ETCD_IMAGE_REPOSITORY")
 	flags.BoolVar(&generateCerts,
-		"generate-certs", true, "Generate and deploy TLS certificates")
+		"generate-certs", false, "Generate and deploy TLS certificates")
 	viper.BindEnv("generate-certs", "CILIUM_ETCD_OPERATOR_GENERATE_CERTS")
 	flags.BoolVar(&cleanUpOnExit,
 		"cleanup", true, "Cleanup resources on exit")
