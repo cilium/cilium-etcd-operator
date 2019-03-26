@@ -1,4 +1,4 @@
-// Copyright 2018 Authors of Cilium
+// Copyright 2018-2019 Authors of Cilium
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,9 +15,7 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/signal"
 	"strings"
@@ -85,7 +83,6 @@ var (
 
 	clusterDomain           string
 	clusterSize             int
-	etcdAffinityFile        string
 	etcdNodeSelector        map[string]string
 	quorumSize              int
 	gracePeriodSec          int64
@@ -149,8 +146,6 @@ func init() {
 	flags.StringVar(&operatorImagePullSecret,
 		"operator-image-pull-secret", "", "Secret to be used for Image Pull")
 	viper.BindEnv("operator-image-pull-secret", "CILIUM_ETCD_OPERATOR_IMAGE_PULL_SECRET")
-	flags.StringVar(&etcdAffinityFile, "etcd-affinity-file", "", "JSON file with the etcd affinity for etcd pods (JSON schema of k8s.io/api/core/v1/types.Affinity)")
-	viper.BindEnv("etcd-affinity-file", "CILIUM_ETCD_OPERATOR_ETCD_AFFINITY_FILE")
 	flags.StringToStringVar(&etcdNodeSelector, "etcd-node-selector", map[string]string{}, "etcd node selector")
 	viper.BindEnv("etcd-node-selector", "CILIUM_ETCD_OPERATOR_ETCD_NODE_SELECTOR")
 
@@ -197,7 +192,6 @@ func parseFlags() {
 	busyboxImage = viper.GetString("busybox-image")
 	operatorImage = viper.GetString("operator-image")
 	operatorImagePullSecret = viper.GetString("operator-image-pull-secret")
-	etcdAffinityFile = viper.GetString("etcd-affinity-file")
 	// viper does not get the maps directly from the CLI with viper.GetStringMapString
 	if len(etcdNodeSelector) == 0 {
 		etcdNodeSelector = viper.GetStringMapString("etcd-node-selector")
@@ -205,22 +199,9 @@ func parseFlags() {
 	}
 	etcdEnvVar := parseEtcdEnv()
 
-	var affinity *v1.Affinity
-	if etcdAffinityFile != "" {
-		b, err := ioutil.ReadFile(etcdAffinityFile)
-		if err != nil {
-			log.Fatalf("Unable to read etcd-affinity file %q: %s", etcdAffinityFile, err)
-		}
-		affinity = &v1.Affinity{}
-		err = json.Unmarshal(b, affinity)
-		if err != nil {
-			log.Fatalf("Unable to parse etcd-affinity file %q: %s", etcdAffinityFile, err)
-		}
-	}
-
 	etcdCRD = etcd_operator.EtcdCRD()
 	etcdDeployment = etcd_operator.EtcdOperatorDeployment(namespace, ownerName, ownerUID, operatorImage, operatorImagePullSecret)
-	ciliumEtcdCR = cilium_etcd_cluster.CiliumEtcdCluster(namespace, etcdImageRepository, etcdVersion, clusterSize, etcdEnvVar, affinity, etcdNodeSelector, busyboxImage)
+	ciliumEtcdCR = cilium_etcd_cluster.CiliumEtcdCluster(namespace, etcdImageRepository, etcdVersion, clusterSize, etcdEnvVar, etcdNodeSelector, busyboxImage)
 	gracePeriod = time.Duration(gracePeriodSec) * time.Second
 }
 

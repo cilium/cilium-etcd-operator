@@ -1,4 +1,4 @@
-// Copyright 2018 Authors of Cilium
+// Copyright 2018-2019 Authors of Cilium
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,15 +16,15 @@ package cilium_etcd_cluster
 
 import (
 	"github.com/cilium/cilium-etcd-operator/pkg/defaults"
-	"k8s.io/api/core/v1"
 
 	"github.com/coreos/etcd-operator/pkg/apis/etcd/v1beta2"
+	"k8s.io/api/core/v1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // CiliumEtcdCluster returns a Cilium ETCD cluster on the given namespace
 // for the given etcd version with for the given size.
-func CiliumEtcdCluster(namespace, repository, version string, size int, etcdEnv []v1.EnvVar, affinity *v1.Affinity, nodeSelector map[string]string, busyboxImage string) *v1beta2.EtcdCluster {
+func CiliumEtcdCluster(namespace, repository, version string, size int, etcdEnv []v1.EnvVar, nodeSelector map[string]string, busyboxImage string) *v1beta2.EtcdCluster {
 	var etcdNodeSelector map[string]string
 	if len(nodeSelector) != 0 {
 		etcdNodeSelector = nodeSelector
@@ -52,7 +52,6 @@ func CiliumEtcdCluster(namespace, repository, version string, size int, etcdEnv 
 				EtcdEnv:      etcdEnv,
 				Labels:       defaults.CiliumLabelsApp,
 				BusyboxImage: busyboxImage,
-				Affinity:     affinity,
 				NodeSelector: etcdNodeSelector,
 			},
 		},
