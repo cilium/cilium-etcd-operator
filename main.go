@@ -135,7 +135,7 @@ func init() {
 		"generate-certs", false, "Generate and deploy TLS certificates")
 	viper.BindEnv("generate-certs", "CILIUM_ETCD_OPERATOR_GENERATE_CERTS")
 	flags.BoolVar(&cleanUpOnExit,
-		"cleanup", true, "Cleanup resources on exit")
+		"cleanup", false, "Cleanup resources on exit")
 	viper.BindEnv("cleanup", "CILIUM_ETCD_OPERATOR_CLEANUP")
 	flags.StringVar(&busyboxImage,
 		"busybox-image", defaults.DefaultBusyboxImage, "Busybox image used for ETCD init container")
@@ -529,7 +529,7 @@ func cleanUp() {
 		log.Info("Done")
 	}
 
-	// Inetermittently the foreground cleanup is not working, causing the etcd pods lying around
+	// Intermittently the foreground cleanup is not working, causing the etcd pods lying around
 	// Etcd operator not cleaning up the pods after quorum is lost
 	// This additional safety check can make sure if any orphan pods and deletes them
 	// Need to add Pods delete permissions in the cluster role binding
