@@ -255,7 +255,14 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	err = deployCiliumCR(false)
+	pl, err := k8s.Client().CoreV1().Pods(namespace).List(meta_v1.ListOptions{
+		LabelSelector: "etcd_cluster=" + defaults.ClusterName,
+		FieldSelector: "status.phase=Running",
+	})
+	// forcefully re-create etcd cluster if it is in a bad state when we start
+	// cilium-etcd-operator
+	force := err != nil || len(pl.Items) == 0
+	err = deployCiliumCR(force)
 	if err != nil {
 		return err
 	}
@@ -294,7 +301,7 @@ forloop:
 		}
 		time.Sleep(2 * time.Second)
 		pl, err := k8s.Client().CoreV1().Pods(namespace).List(meta_v1.ListOptions{
-			LabelSelector: "etcd_cluster=cilium-etcd",
+			LabelSelector: "etcd_cluster=" + defaults.ClusterName,
 			FieldSelector: "status.phase=Running",
 		})
 		if err != nil {
@@ -463,6 +470,9 @@ func deployCiliumCR(force bool) error {
 	switch {
 	case err == nil && force:
 		// Clear state for already running deployments
+		// If cluster is dead etcd-operator will re-create it
+		// If cluster is health, etcd-operator will populate the status back
+		// again.
 		ciliumCR.Status = v1beta2.ClusterStatus{}
 		k8s.EtcdClient().EtcdV1beta2().EtcdClusters(ciliumEtcdCR.Namespace).Update(ciliumCR)
 	case errors.IsNotFound(err):
