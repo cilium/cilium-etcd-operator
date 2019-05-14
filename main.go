@@ -144,6 +144,8 @@ func init() {
 	flags.StringVar(&etcdImageRepository,
 		"etcd-image-repository", "quay.io/coreos/etcd", "Name of the repository that hosts etcd container images.")
 	viper.BindEnv("etcd-image-repository", "CILIUM_ETCD_OPERATOR_ETCD_IMAGE_REPOSITORY")
+	flags.Bool("enable-service-account", true, "Deploy the etcd-operator with serviceAccount cilium-etcd-sa")
+	viper.BindEnv("enable-service-account", "CILIUM_ETCD_OPERATOR_ENABLE_SERVICE_ACCOUNT")
 	flags.BoolVar(&generateCerts,
 		"generate-certs", false, "Generate and deploy TLS certificates")
 	viper.BindEnv("generate-certs", "CILIUM_ETCD_OPERATOR_GENERATE_CERTS")
@@ -205,6 +207,7 @@ func parseFlags() {
 	busyboxImage = viper.GetString("busybox-image")
 	operatorImage = viper.GetString("operator-image")
 	operatorImagePullSecret = viper.GetString("operator-image-pull-secret")
+	enableServiceAccount := viper.GetBool("enable-service-account")
 	// viper does not get the maps directly from the CLI with viper.GetStringMapString
 	if len(etcdNodeSelector) == 0 {
 		etcdNodeSelector = viper.GetStringMapString("etcd-node-selector")
@@ -213,7 +216,7 @@ func parseFlags() {
 	etcdEnvVar := parseEtcdEnv()
 
 	etcdCRD = etcd_operator.EtcdCRD()
-	etcdDeployment = etcd_operator.EtcdOperatorDeployment(namespace, ownerName, ownerUID, operatorImage, operatorImagePullSecret)
+	etcdDeployment = etcd_operator.EtcdOperatorDeployment(namespace, ownerName, ownerUID, operatorImage, operatorImagePullSecret, enableServiceAccount)
 	ciliumEtcdCR = cilium_etcd_cluster.CiliumEtcdCluster(namespace, etcdImageRepository, etcdVersion, clusterSize, etcdEnvVar, etcdNodeSelector, busyboxImage)
 	gracePeriod = time.Duration(gracePeriodSec) * time.Second
 }

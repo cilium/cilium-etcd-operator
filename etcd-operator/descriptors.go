@@ -28,14 +28,14 @@ var blockOwnerDeletion = true
 
 // EtcdOperatorDeployment returns the etcd operator deployment that is
 // for the given namespace.
-func EtcdOperatorDeployment(namespace, ownerName, ownerUID, operatorImage, operatorImagePullSecret string) *apps_v1beta2.Deployment {
+func EtcdOperatorDeployment(namespace, ownerName, ownerUID, operatorImage, operatorImagePullSecret string, enableServiceAccount bool) *apps_v1beta2.Deployment {
 	nReplicas := int32(1)
 	var secrets []core_v1.LocalObjectReference
 	if operatorImagePullSecret != "" {
 		imagePullSecret := core_v1.LocalObjectReference{Name: operatorImagePullSecret}
 		secrets = append(secrets, imagePullSecret)
 	}
-	return &apps_v1beta2.Deployment{
+	deployment := &apps_v1beta2.Deployment{
 		ObjectMeta: meta_v1.ObjectMeta{
 			Name:      "etcd-operator",
 			Namespace: namespace,
@@ -96,6 +96,12 @@ func EtcdOperatorDeployment(namespace, ownerName, ownerUID, operatorImage, opera
 			},
 		},
 	}
+
+	if enableServiceAccount {
+		deployment.Spec.Template.Spec.ServiceAccountName = "cilium-etcd-sa"
+	}
+
+	return deployment
 }
 
 // EtcdCRD returns the etcd CRD.
