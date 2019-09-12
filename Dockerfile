@@ -1,4 +1,4 @@
-FROM docker.io/library/golang:1.12.1 as builder
+FROM docker.io/library/golang:1.13 as builder
 LABEL maintainer="maintainer@cilium.io"
 ADD . /go/src/github.com/cilium/cilium-etcd-operator
 WORKDIR /go/src/github.com/cilium/cilium-etcd-operator
