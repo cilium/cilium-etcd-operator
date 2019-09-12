@@ -17,7 +17,7 @@ package etcd_operator
 import (
 	"github.com/cilium/cilium-etcd-operator/pkg/defaults"
 
-	apps_v1beta2 "k8s.io/api/apps/v1beta2"
+	apps_v1 "k8s.io/api/apps/v1"
 	core_v1 "k8s.io/api/core/v1"
 	apiextensions_v1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -28,14 +28,14 @@ var blockOwnerDeletion = true
 
 // EtcdOperatorDeployment returns the etcd operator deployment that is
 // for the given namespace.
-func EtcdOperatorDeployment(namespace, ownerName, ownerUID, operatorImage, operatorImagePullSecret string) *apps_v1beta2.Deployment {
+func EtcdOperatorDeployment(namespace, ownerName, ownerUID, operatorImage, operatorImagePullSecret string) *apps_v1.Deployment {
 	nReplicas := int32(1)
 	var secrets []core_v1.LocalObjectReference
 	if operatorImagePullSecret != "" {
 		imagePullSecret := core_v1.LocalObjectReference{Name: operatorImagePullSecret}
 		secrets = append(secrets, imagePullSecret)
 	}
-	return &apps_v1beta2.Deployment{
+	return &apps_v1.Deployment{
 		ObjectMeta: meta_v1.ObjectMeta{
 			Name:      "etcd-operator",
 			Namespace: namespace,
@@ -49,7 +49,7 @@ func EtcdOperatorDeployment(namespace, ownerName, ownerUID, operatorImage, opera
 				},
 			},
 		},
-		Spec: apps_v1beta2.DeploymentSpec{
+		Spec: apps_v1.DeploymentSpec{
 			Replicas: &nReplicas,
 			Selector: &meta_v1.LabelSelector{
 				MatchLabels: defaults.CiliumLabelsApp,

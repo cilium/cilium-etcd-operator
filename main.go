@@ -34,7 +34,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	apps_v1beta2 "k8s.io/api/apps/v1beta2"
+	apps_v1 "k8s.io/api/apps/v1"
 	"k8s.io/api/core/v1"
 	apiExt_v1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -99,7 +99,7 @@ var (
 	operatorImagePullSecret string
 
 	etcdCRD        *apiExt_v1beta1.CustomResourceDefinition
-	etcdDeployment *apps_v1beta2.Deployment
+	etcdDeployment *apps_v1.Deployment
 	ciliumEtcdCR   *v1beta2.EtcdCluster
 
 	closeOnce sync.Once
@@ -280,7 +280,7 @@ func run() error {
 		case <-time.Tick(30 * time.Second):
 			// in case the first etcd-operator deployment is not running, retry
 			// it until we start monitoring cluster health.
-			_, err := k8s.Client().AppsV1beta2().Deployments(etcdDeployment.Namespace).Get(etcdDeployment.Name, meta_v1.GetOptions{})
+			_, err := k8s.Client().AppsV1().Deployments(etcdDeployment.Namespace).Get(etcdDeployment.Name, meta_v1.GetOptions{})
 			if errors.IsNotFound(err) {
 				err = deployETCD(false)
 				if err != nil {
@@ -416,13 +416,13 @@ func deployETCD(force bool) error {
 	log.Info("Done!")
 
 	log.Info("Deploying etcd-operator deployment...")
-	etcdDeplyServer, err := k8s.Client().AppsV1beta2().Deployments(etcdDeployment.Namespace).Get(etcdDeployment.Name, meta_v1.GetOptions{})
+	etcdDeplyServer, err := k8s.Client().AppsV1().Deployments(etcdDeployment.Namespace).Get(etcdDeployment.Name, meta_v1.GetOptions{})
 	switch {
 	case err == nil && !force:
 		if etcdDeplyServer.Status.AvailableReplicas != 0 && etcdDeplyServer.DeletionTimestamp == nil {
 			etcdCpy := etcdDeployment.DeepCopy()
 			etcdCpy.UID = etcdDeplyServer.UID
-			_, err = k8s.Client().AppsV1beta2().Deployments(etcdDeployment.Namespace).Update(etcdDeployment)
+			_, err = k8s.Client().AppsV1().Deployments(etcdDeployment.Namespace).Update(etcdDeployment)
 			if err != nil {
 				return fmt.Errorf("unable to update etcd-operator deployment: %s", err)
 			}
@@ -433,13 +433,13 @@ func deployETCD(force bool) error {
 		fallthrough
 	case force:
 		fg := meta_v1.DeletePropagationForeground
-		k8s.Client().AppsV1beta2().Deployments(etcdDeployment.Namespace).Delete(etcdDeployment.Name, &meta_v1.DeleteOptions{PropagationPolicy: &fg})
+		k8s.Client().AppsV1().Deployments(etcdDeployment.Namespace).Delete(etcdDeployment.Name, &meta_v1.DeleteOptions{PropagationPolicy: &fg})
 		t := time.NewTicker(2 * time.Minute)
 		defer t.Stop()
 		for {
 			// Wait until the deployment does not exist
 			log.Info("Waiting for previous etcd-operator deployment to be removed...")
-			_, err := k8s.Client().AppsV1beta2().Deployments(etcdDeployment.Namespace).Get(etcdDeployment.Name, meta_v1.GetOptions{})
+			_, err := k8s.Client().AppsV1().Deployments(etcdDeployment.Namespace).Get(etcdDeployment.Name, meta_v1.GetOptions{})
 			if errors.IsNotFound(err) {
 				break
 			}
@@ -452,7 +452,7 @@ func deployETCD(force bool) error {
 		log.Info("Done! Re-creating etcd-operator deployment...")
 		fallthrough
 	case errors.IsNotFound(err):
-		_, err := k8s.Client().AppsV1beta2().Deployments(etcdDeployment.Namespace).Create(etcdDeployment)
+		_, err := k8s.Client().AppsV1().Deployments(etcdDeployment.Namespace).Create(etcdDeployment)
 		if err != nil {
 			return fmt.Errorf("unable to create etcd-operator deployment: %s", err)
 		}
@@ -545,7 +545,7 @@ func cleanUp() {
 	}
 	log.Info("Deleting etcd-operator deployment...")
 	d := meta_v1.DeletePropagationForeground
-	err = k8s.Client().AppsV1beta2().Deployments(etcdDeployment.Namespace).Delete(etcdDeployment.Name, &meta_v1.DeleteOptions{PropagationPolicy: &d})
+	err = k8s.Client().AppsV1().Deployments(etcdDeployment.Namespace).Delete(etcdDeployment.Name, &meta_v1.DeleteOptions{PropagationPolicy: &d})
 	if err != nil {
 		log.Warningf("Unable to delete etcd-operator deployment: %s", err)
 	} else {
